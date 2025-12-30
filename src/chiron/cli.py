@@ -468,6 +468,16 @@ def research_start() -> None:
             f"\n[bold cyan]Starting research for: {subject_id}[/bold cyan]\n"
         )
 
+        # Check if curriculum design has been done
+        nodes = orchestrator.db.get_knowledge_tree(subject_id)
+        if not nodes:
+            console.print(
+                "[yellow]No curriculum found for this subject.[/yellow]\n"
+                "[dim]The research agent will explore the topic generally. "
+                "For structured research, run curriculum design first during "
+                "'chiron init'.[/dim]\n"
+            )
+
         progress_display = ResearchProgressDisplay(console, orchestrator)
         progress_display.start_timer()
 
