@@ -452,7 +452,64 @@ def research() -> None:
 @research.command("start")
 def research_start() -> None:
     """Start research for current subject."""
-    console.print("[yellow]Research start not yet implemented[/yellow]")
+    try:
+        orchestrator = get_orchestrator()
+        subject_id = orchestrator.get_active_subject()
+
+        if subject_id is None:
+            console.print(
+                "[red]No active subject. Use 'chiron init' to create one "
+                "or 'chiron use <subject>' to switch.[/red]"
+            )
+            return
+
+        console.print(
+            f"\n[bold cyan]Starting research for: {subject_id}[/bold cyan]\n"
+        )
+        console.print(
+            "[yellow]Researching topics... (this may take a moment)[/yellow]\n"
+        )
+
+        try:
+            response = orchestrator.start_research()
+            console.print(response)
+
+            # Interactive research loop
+            console.print(
+                "\n[dim]Enter a topic to research next, or type "
+                "[bold]'done'[/bold] to finish research.[/dim]\n"
+            )
+
+            while True:
+                user_input = Prompt.ask("[green]Topic or command[/green]")
+
+                if user_input.lower().strip() in ("quit", "exit", "q", "done"):
+                    console.print(
+                        "\n[green]Research session complete! "
+                        "Use 'chiron lesson' to start learning.[/green]"
+                    )
+                    break
+
+                # Handle empty input
+                if not user_input.strip():
+                    console.print(
+                        "[dim]Enter a topic to research, or type "
+                        "[bold]'done'[/bold] to finish.[/dim]"
+                    )
+                    continue
+
+                # Research the specified topic
+                console.print(
+                    f"\n[yellow]Researching: {user_input}...[/yellow]\n"
+                )
+                response = orchestrator.continue_research(user_input)
+                console.print(f"\n{response}\n")
+
+        except Exception as e:
+            console.print(f"[red]Error during research: {e}[/red]")
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
 
 
 @research.command("status")

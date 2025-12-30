@@ -216,6 +216,63 @@ class Orchestrator:
         """
         return self.curriculum_agent.continue_design(user_response)
 
+    def start_research(self) -> str:
+        """Start research for the active subject.
+
+        Returns:
+            The research agent's initial response.
+
+        Raises:
+            ValueError: If no active subject is set.
+        """
+        subject_id = self.get_active_subject()
+        if subject_id is None:
+            raise ValueError("No active subject set")
+
+        goal = self.db.get_learning_goal(subject_id)
+        if goal is None:
+            raise ValueError(f"Subject '{subject_id}' not found")
+
+        self.state = WorkflowState.RESEARCHING
+
+        # Get knowledge tree to find topics to research
+        nodes = self.db.get_knowledge_tree(subject_id)
+
+        if nodes:
+            # Research the first unresearched topic
+            topic = nodes[0].title
+            context = goal.purpose_statement
+        else:
+            # No knowledge tree yet - research the subject generally
+            topic = subject_id.replace("-", " ").title()
+            context = goal.purpose_statement
+
+        return self.research_agent.research_topic(
+            topic_path=topic,
+            subject_id=subject_id,
+            context=context,
+        )
+
+    def continue_research(self, user_input: str) -> str:
+        """Continue research with user guidance.
+
+        Args:
+            user_input: User's direction or topic to research next.
+
+        Returns:
+            The research agent's response.
+        """
+        subject_id = self.get_active_subject()
+        if subject_id is None:
+            raise ValueError("No active subject set")
+
+        # If user provides a topic, research it
+        # Otherwise, continue with next topic from tree
+        return self.research_agent.research_topic(
+            topic_path=user_input,
+            subject_id=subject_id,
+        )
+
     def start_lesson(self) -> str:
         """Start a new lesson for the active subject.
 
