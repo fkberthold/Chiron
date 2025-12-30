@@ -156,7 +156,8 @@ def init() -> None:
                 # Interactive curriculum design loop
                 console.print(
                     "\n[dim]Answer the agent's questions to refine your curriculum. "
-                    "Type 'done' when satisfied, or 'quit' to exit.[/dim]\n"
+                    "Type [bold]'done'[/bold] to save and finalize, "
+                    "or 'quit' to exit without saving.[/dim]\n"
                 )
 
                 while True:
@@ -176,8 +177,8 @@ def init() -> None:
                     # Handle empty input
                     if not user_input.strip():
                         console.print(
-                            "[dim]Type 'done' to finalize curriculum, "
-                            "'quit' to exit, or continue the conversation.[/dim]"
+                            "[dim]Type [bold]'done'[/bold] to save curriculum, "
+                            "'quit' to exit, or enter a response.[/dim]"
                         )
                         continue
 
@@ -189,8 +190,8 @@ def init() -> None:
                     if _appears_concluded(response):
                         console.print(
                             "\n[cyan]The agent seems to have finished. "
-                            "Type 'done' to finalize, or continue if you have "
-                            "more questions.[/cyan]\n"
+                            "Type [bold]'done'[/bold] to save the curriculum, "
+                            "or continue if you have more questions.[/cyan]\n"
                         )
 
             except Exception as e:
