@@ -2,13 +2,12 @@
 
 import click
 from rich.console import Console
-from rich.live import Live
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from chiron import __version__
-from chiron.display.progress import ResearchProgressDisplay
 from chiron.config import get_config
+from chiron.display.progress import ResearchProgressDisplay
 from chiron.orchestrator import Orchestrator
 from chiron.storage.database import Database
 from chiron.storage.vector_store import VectorStore
@@ -473,26 +472,21 @@ def research_start() -> None:
         progress_display.start_timer()
 
         try:
-            with Live(
-                progress_display.render(), console=console, refresh_per_second=4
-            ) as live:
-                # Initial research
-                progress_display.update_status("Starting research...")
-                live.update(progress_display.render())
+            # Show initial tree state
+            console.print(progress_display.render())
 
+            # Run initial research with spinner
+            with console.status(
+                "[bold cyan]Researching...[/bold cyan]", spinner="dots"
+            ):
                 response = orchestrator.start_research()
 
-                # Update display after research call
-                progress_display.update_status(
-                    "Research complete. Enter topic or 'done'."
-                )
-                live.update(progress_display.render())
-
-            # Show final tree state (outside Live context for user input)
+            # Show updated tree after research
+            progress_display.update_status("Research complete.")
             console.print(progress_display.render())
             console.print(f"\n{response}\n")
 
-            # Interactive loop (without Live - can't mix with Prompt)
+            # Interactive loop
             console.print(
                 "[dim]Enter a topic to research, or type "
                 "[bold]'done'[/bold] to finish.[/dim]\n"
@@ -508,22 +502,18 @@ def research_start() -> None:
                 if not user_input.strip():
                     continue
 
-                # Research with progress display
-                with Live(
-                    progress_display.render(),
-                    console=console,
-                    refresh_per_second=4,
-                ) as live:
-                    progress_display.set_active_topic(user_input)
-                    progress_display.update_status(f"Researching: {user_input}...")
-                    live.update(progress_display.render())
+                # Research with spinner
+                progress_display.set_active_topic(user_input)
+                console.print(progress_display.render())
 
+                with console.status(
+                    f"[bold cyan]Researching: {user_input}...[/bold cyan]",
+                    spinner="dots",
+                ):
                     response = orchestrator.continue_research(user_input)
 
-                    progress_display.set_active_topic(None)
-                    progress_display.update_status("Research complete.")
-                    live.update(progress_display.render())
-
+                progress_display.set_active_topic(None)
+                progress_display.update_status("Research complete.")
                 console.print(progress_display.render())
                 console.print(f"\n{response}\n")
 
