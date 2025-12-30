@@ -29,6 +29,7 @@ dev = [
 
 [project.scripts]
 chiron = "chiron.cli:cli"
+chiron-mcp = "chiron.mcp_server.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/chiron"]
