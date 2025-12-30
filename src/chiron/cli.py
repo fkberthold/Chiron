@@ -2,10 +2,12 @@
 
 import click
 from rich.console import Console
+from rich.live import Live
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from chiron import __version__
+from chiron.cli.progress import ResearchProgressDisplay
 from chiron.config import get_config
 from chiron.orchestrator import Orchestrator
 from chiron.storage.database import Database
@@ -466,43 +468,63 @@ def research_start() -> None:
         console.print(
             f"\n[bold cyan]Starting research for: {subject_id}[/bold cyan]\n"
         )
-        console.print(
-            "[yellow]Researching topics... (this may take a moment)[/yellow]\n"
-        )
+
+        progress_display = ResearchProgressDisplay(console, orchestrator)
+        progress_display.start_timer()
 
         try:
-            response = orchestrator.start_research()
-            console.print(response)
+            with Live(
+                progress_display.render(), console=console, refresh_per_second=4
+            ) as live:
+                # Initial research
+                progress_display.update_status("Starting research...")
+                live.update(progress_display.render())
 
-            # Interactive research loop
+                response = orchestrator.start_research()
+
+                # Update display after research call
+                progress_display.update_status(
+                    "Research complete. Enter topic or 'done'."
+                )
+                live.update(progress_display.render())
+
+            # Show final tree state (outside Live context for user input)
+            console.print(progress_display.render())
+            console.print(f"\n{response}\n")
+
+            # Interactive loop (without Live - can't mix with Prompt)
             console.print(
-                "\n[dim]Enter a topic to research next, or type "
-                "[bold]'done'[/bold] to finish research.[/dim]\n"
+                "[dim]Enter a topic to research, or type "
+                "[bold]'done'[/bold] to finish.[/dim]\n"
             )
 
             while True:
                 user_input = Prompt.ask("[green]Topic or command[/green]")
 
                 if user_input.lower().strip() in ("quit", "exit", "q", "done"):
-                    console.print(
-                        "\n[green]Research session complete! "
-                        "Use 'chiron lesson' to start learning.[/green]"
-                    )
+                    console.print("\n[green]Research session complete![/green]")
                     break
 
-                # Handle empty input
                 if not user_input.strip():
-                    console.print(
-                        "[dim]Enter a topic to research, or type "
-                        "[bold]'done'[/bold] to finish.[/dim]"
-                    )
                     continue
 
-                # Research the specified topic
-                console.print(
-                    f"\n[yellow]Researching: {user_input}...[/yellow]\n"
-                )
-                response = orchestrator.continue_research(user_input)
+                # Research with progress display
+                with Live(
+                    progress_display.render(),
+                    console=console,
+                    refresh_per_second=4,
+                ) as live:
+                    progress_display.set_active_topic(user_input)
+                    progress_display.update_status(f"Researching: {user_input}...")
+                    live.update(progress_display.render())
+
+                    response = orchestrator.continue_research(user_input)
+
+                    progress_display.set_active_topic(None)
+                    progress_display.update_status("Research complete.")
+                    live.update(progress_display.render())
+
+                console.print(progress_display.render())
                 console.print(f"\n{response}\n")
 
         except Exception as e:
