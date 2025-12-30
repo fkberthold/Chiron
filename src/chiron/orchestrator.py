@@ -150,7 +150,7 @@ class Orchestrator:
             True if deleted, False if subject didn't exist.
         """
         # Also delete from vector store
-        self.vector_store.delete_by_subject(subject_id)
+        self.vector_store.delete_subject(subject_id)
 
         # Clear active subject if it was this one
         if self._active_subject_id == subject_id:
