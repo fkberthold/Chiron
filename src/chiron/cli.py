@@ -143,6 +143,10 @@ def lesson() -> None:
             while True:
                 user_input = Prompt.ask("[green]Your response[/green]")
 
+                if user_input.lower().strip() in ("quit", "exit", "q"):
+                    console.print("[yellow]Exiting lesson.[/yellow]")
+                    break
+
                 if user_input.lower().strip() == "done":
                     console.print(
                         "\n[yellow]Generating personalized lesson...[/yellow]\n"
