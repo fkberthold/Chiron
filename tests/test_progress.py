@@ -7,7 +7,7 @@ import pytest
 from rich.console import Console, Group
 from rich.tree import Tree
 
-from chiron.cli.progress import (
+from chiron.display.progress import (
     COMPLETION_THRESHOLD,
     MAX_DISPLAY_DEPTH,
     ResearchProgressDisplay,

@@ -314,36 +314,80 @@ CREATE TABLE settings (
 ### File System Structure
 
 ```
-/home/frank/Working/trainer/
+/home/frank/repos/Chiron/
+├── src/
+│   └── chiron/
+│       ├── __init__.py
+│       ├── __main__.py          # Entry point for `python -m chiron`
+│       ├── cli.py               # Click/Typer CLI commands
+│       ├── orchestrator.py      # Main workflow state machine
+│       ├── agents/
+│       │   ├── __init__.py
+│       │   ├── base.py          # Base agent session management
+│       │   ├── curriculum.py    # CurriculumAgent
+│       │   ├── research.py      # ResearchAgent
+│       │   ├── lesson.py        # LessonAgent
+│       │   └── assessment.py    # AssessmentAgent
+│       ├── mcp_server/
+│       │   ├── __init__.py
+│       │   ├── server.py        # FastAPI MCP server
+│       │   └── tools/
+│       │       ├── __init__.py
+│       │       ├── knowledge.py # Vector DB tools
+│       │       ├── sources.py   # Source management tools
+│       │       ├── progress.py  # Progress tracking tools
+│       │       ├── lessons.py   # Lesson management tools
+│       │       └── subjects.py  # Subject management tools
+│       ├── storage/
+│       │   ├── __init__.py
+│       │   ├── database.py      # SQLite operations
+│       │   ├── vector_store.py  # ChromaDB operations
+│       │   └── models.py        # Data models/schemas
+│       ├── audio/
+│       │   ├── __init__.py
+│       │   └── tts.py           # TTS rendering (Coqui/Piper)
+│       └── utils/
+│           ├── __init__.py
+│           └── config.py        # Configuration management
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py              # Pytest fixtures
+│   ├── test_cli.py
+│   ├── test_orchestrator.py
+│   └── agents/
+│       └── ...
 ├── docs/
 │   └── plans/
 │       └── 2025-12-29-chiron-design.md
-├── knowledge_bases/
-│   ├── kubernetes/
-│   │   ├── research/
-│   │   │   ├── coverage_map.json
-│   │   │   └── sources.md
-│   │   └── vector_db/  (ChromaDB persisted)
-│   └── philosophy/
-│       ├── research/
-│       └── vector_db/
-├── lessons/
-│   ├── kubernetes/
-│   │   └── 2025-01-15/
-│   │       ├── lesson.md
-│   │       ├── script.txt
-│   │       ├── audio.mp3
-│   │       ├── diagrams/
-│   │       │   ├── pod-lifecycle.puml
-│   │       │   └── pod-lifecycle.png
-│   │       └── exercises.json
-│   └── philosophy/
-├── progress/
-│   ├── kubernetes-skill-tree.json
-│   ├── philosophy-skill-tree.json
-│   └── current_state.json
-├── chiron.db  (SQLite)
-└── chiron.py  (Main orchestrator)
+├── data/                        # Runtime data (gitignored)
+│   ├── knowledge_bases/
+│   │   ├── kubernetes/
+│   │   │   ├── research/
+│   │   │   │   ├── coverage_map.json
+│   │   │   │   └── sources.md
+│   │   │   └── vector_db/       # ChromaDB persisted
+│   │   └── philosophy/
+│   │       ├── research/
+│   │       └── vector_db/
+│   ├── lessons/
+│   │   ├── kubernetes/
+│   │   │   └── 2025-01-15/
+│   │   │       ├── lesson.md
+│   │   │       ├── script.txt
+│   │   │       ├── audio.mp3
+│   │   │       ├── diagrams/
+│   │   │       │   ├── pod-lifecycle.puml
+│   │   │       │   └── pod-lifecycle.png
+│   │   │       └── exercises.json
+│   │   └── philosophy/
+│   ├── progress/
+│   │   ├── kubernetes-skill-tree.json
+│   │   ├── philosophy-skill-tree.json
+│   │   └── current_state.json
+│   └── chiron.db                # SQLite database
+├── pyproject.toml               # Project config, dependencies, CLI entry point
+├── README.md
+└── .gitignore
 ```
 
 ---

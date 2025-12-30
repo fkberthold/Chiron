@@ -7,7 +7,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from chiron import __version__
-from chiron.cli.progress import ResearchProgressDisplay
+from chiron.display.progress import ResearchProgressDisplay
 from chiron.config import get_config
 from chiron.orchestrator import Orchestrator
 from chiron.storage.database import Database
