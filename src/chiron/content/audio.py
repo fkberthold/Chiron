@@ -111,7 +111,7 @@ def generate_audio(
     if config.engine == "export":
         # Just save the script for external TTS
         script_path = output_path.with_suffix(".txt")
-        script_path.write_text(script)
+        script_path.write_text(script, encoding="utf-8")
         return script_path
 
     # TODO: Implement Coqui TTS
