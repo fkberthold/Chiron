@@ -101,3 +101,14 @@ Please design a coverage map for my learning journey. Start by understanding my 
 then research the domain, and propose a curriculum structure."""
 
         return self.run(prompt)
+
+    def continue_design(self, user_response: str) -> str:
+        """Continue curriculum design with user feedback.
+
+        Args:
+            user_response: User's answer to questions or feedback
+
+        Returns:
+            Agent's next response
+        """
+        return self.run(user_response)

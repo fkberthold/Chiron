@@ -187,6 +187,17 @@ class Orchestrator:
             subject=subject_id,
         )
 
+    def continue_curriculum_design(self, user_response: str) -> str:
+        """Continue curriculum design with user feedback.
+
+        Args:
+            user_response: User's answer to questions or feedback.
+
+        Returns:
+            The curriculum agent's response.
+        """
+        return self.curriculum_agent.continue_design(user_response)
+
     def start_lesson(self) -> str:
         """Start a new lesson for the active subject.
 

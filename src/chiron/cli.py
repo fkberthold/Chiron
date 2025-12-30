@@ -100,6 +100,31 @@ def init() -> None:
             try:
                 response = orchestrator.start_curriculum_design()
                 console.print(response)
+
+                # Interactive curriculum design loop
+                console.print(
+                    "\n[dim]Answer the agent's questions to refine your curriculum. "
+                    "Type 'done' when satisfied, or 'quit' to exit.[/dim]\n"
+                )
+
+                while True:
+                    user_input = Prompt.ask("[green]Your response[/green]")
+
+                    if user_input.lower().strip() in ("quit", "exit", "q"):
+                        console.print("[yellow]Exiting curriculum design.[/yellow]")
+                        break
+
+                    if user_input.lower().strip() == "done":
+                        console.print(
+                            "\n[green]Curriculum design complete! "
+                            "Use 'chiron research start' to begin research.[/green]"
+                        )
+                        break
+
+                    # Continue the conversation
+                    response = orchestrator.continue_curriculum_design(user_input)
+                    console.print(f"\n{response}\n")
+
             except Exception as e:
                 console.print(f"[red]Error during curriculum design: {e}[/red]")
         else:
