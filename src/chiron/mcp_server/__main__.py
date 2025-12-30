@@ -1,7 +1,5 @@
 """Entry point for running the MCP server standalone."""
 
-from pathlib import Path
-
 from chiron.config import get_config
 from chiron.mcp_server.server import create_mcp_server
 from chiron.storage.database import Database
