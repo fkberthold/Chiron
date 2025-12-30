@@ -2,6 +2,7 @@
 
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from chiron.agents import (
     AssessmentAgent,
@@ -336,3 +337,51 @@ class Orchestrator:
             topics=topics if topics else ["Introduction"],
             assessment_summary=assessment_summary,
         )
+
+    def get_research_progress(self, subject_id: str | None = None) -> dict[str, Any]:
+        """Get research progress for a subject.
+
+        Combines knowledge tree structure with fact counts from vector store.
+
+        Args:
+            subject_id: Subject to get progress for. Uses active subject if None.
+
+        Returns:
+            Dictionary with:
+            - subject_id: str
+            - nodes: list of node dicts with id, title, depth, fact_count
+            - total_facts: int
+
+        Raises:
+            ValueError: If no subject_id provided and no active subject set.
+        """
+        # Get subject_id (use active subject if None passed)
+        if subject_id is None:
+            subject_id = self.get_active_subject()
+            if subject_id is None:
+                raise ValueError("No active subject set")
+
+        # Get knowledge tree nodes
+        nodes = self.db.get_knowledge_tree(subject_id)
+
+        # Get fact counts by topic from vector store
+        fact_counts = self.vector_store.count_facts_by_topic(subject_id)
+
+        # Combine nodes with fact counts
+        node_list = []
+        for node in nodes:
+            node_list.append({
+                "id": node.id,
+                "title": node.title,
+                "depth": node.depth,
+                "fact_count": fact_counts.get(node.title, 0),
+            })
+
+        # Calculate total facts
+        total_facts = sum(fact_counts.values())
+
+        return {
+            "subject_id": subject_id,
+            "nodes": node_list,
+            "total_facts": total_facts,
+        }
