@@ -153,3 +153,77 @@ def test_delete_by_subject(vector_store: VectorStore) -> None:
     )
     assert len(python_results) == 1
     assert python_results[0].subject_id == "python"
+
+
+def test_count_facts_by_topic(vector_store: VectorStore) -> None:
+    """Should count facts per topic path for a subject."""
+    # Create chunks with different topic paths and confidences
+    chunks = [
+        KnowledgeChunk(
+            content="Pods are the smallest deployable units",
+            subject_id="kubernetes",
+            source_url="https://kubernetes.io/docs",
+            source_score=0.9,
+            topic_path="architecture/pods",
+            confidence=0.85,
+        ),
+        KnowledgeChunk(
+            content="Pods can contain multiple containers",
+            subject_id="kubernetes",
+            source_url="https://kubernetes.io/docs",
+            source_score=0.9,
+            topic_path="architecture/pods",
+            confidence=0.80,
+        ),
+        KnowledgeChunk(
+            content="Services expose pods to network traffic",
+            subject_id="kubernetes",
+            source_url="https://kubernetes.io/docs",
+            source_score=0.9,
+            topic_path="networking/services",
+            confidence=0.90,
+        ),
+        KnowledgeChunk(
+            content="Low confidence fact about networking",
+            subject_id="kubernetes",
+            source_url="https://kubernetes.io/docs",
+            source_score=0.5,
+            topic_path="networking/ingress",
+            confidence=0.5,  # Below default threshold
+        ),
+        KnowledgeChunk(
+            content="Python decorators modify functions",
+            subject_id="python",
+            source_url="https://docs.python.org",
+            source_score=0.9,
+            topic_path="advanced/decorators",
+            confidence=0.95,
+        ),
+    ]
+    for chunk in chunks:
+        vector_store.store_knowledge(chunk)
+
+    # Count facts for kubernetes with default min_confidence (0.7)
+    counts = vector_store.count_facts_by_topic("kubernetes")
+
+    # Should have 2 pods, 1 services, and 0 ingress (below confidence threshold)
+    assert counts == {
+        "architecture/pods": 2,
+        "networking/services": 1,
+    }
+
+    # Count with lower confidence threshold to include ingress
+    counts_all = vector_store.count_facts_by_topic("kubernetes", min_confidence=0.4)
+    assert counts_all == {
+        "architecture/pods": 2,
+        "networking/services": 1,
+        "networking/ingress": 1,
+    }
+
+    # Count for python subject
+    python_counts = vector_store.count_facts_by_topic("python")
+    assert python_counts == {"advanced/decorators": 1}
+
+    # Count for non-existent subject should return empty dict
+    empty_counts = vector_store.count_facts_by_topic("nonexistent")
+    assert empty_counts == {}

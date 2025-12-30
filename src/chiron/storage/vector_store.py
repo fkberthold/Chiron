@@ -184,3 +184,38 @@ class VectorStore:
                 chunks.append(chunk)
 
         return chunks
+
+    def count_facts_by_topic(
+        self, subject_id: str, min_confidence: float = 0.7
+    ) -> dict[str, int]:
+        """Count facts per topic path for a subject.
+
+        Args:
+            subject_id: The subject identifier.
+            min_confidence: Minimum confidence threshold (default 0.7).
+
+        Returns:
+            Dictionary mapping topic paths to fact counts.
+        """
+        # Build where filter for subject_id and confidence
+        where_filter: Where = cast(
+            Where,
+            {
+                "$and": [
+                    {"subject_id": {"$eq": subject_id}},
+                    {"confidence": {"$gte": min_confidence}},
+                ]
+            },
+        )
+
+        results = self._collection.get(where=where_filter)
+
+        # Count occurrences of each topic_path
+        counts: dict[str, int] = {}
+
+        if results["metadatas"]:
+            for metadata in results["metadatas"]:
+                topic_path = str(cast(dict[str, Any], metadata)["topic_path"])
+                counts[topic_path] = counts.get(topic_path, 0) + 1
+
+        return counts
