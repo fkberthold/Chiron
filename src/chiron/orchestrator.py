@@ -140,6 +140,24 @@ class Orchestrator:
         """
         return self.db.list_subjects()
 
+    def delete_subject(self, subject_id: str) -> bool:
+        """Delete a subject and all associated data.
+
+        Args:
+            subject_id: The subject ID to delete.
+
+        Returns:
+            True if deleted, False if subject didn't exist.
+        """
+        # Also delete from vector store
+        self.vector_store.delete_by_subject(subject_id)
+
+        # Clear active subject if it was this one
+        if self._active_subject_id == subject_id:
+            self._active_subject_id = None
+
+        return self.db.delete_subject(subject_id)
+
     def initialize_subject(
         self, subject_id: str, purpose_statement: str
     ) -> LearningGoal:

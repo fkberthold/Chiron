@@ -277,6 +277,58 @@ class Database:
                 for row in cursor.fetchall()
             ]
 
+    def delete_subject(self, subject_id: str) -> bool:
+        """Delete a subject and all associated data.
+
+        Args:
+            subject_id: The subject identifier to delete.
+
+        Returns:
+            True if the subject was deleted, False if it didn't exist.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Check if subject exists
+            cursor.execute(
+                "SELECT id FROM learning_goals WHERE subject_id = ?", (subject_id,)
+            )
+            if cursor.fetchone() is None:
+                return False
+
+            # Delete in order respecting foreign keys
+            # First delete responses (references lessons and knowledge_nodes)
+            cursor.execute(
+                """
+                DELETE FROM responses WHERE lesson_id IN (
+                    SELECT id FROM lessons WHERE subject_id = ?
+                )
+                """,
+                (subject_id,),
+            )
+
+            # Delete lessons
+            cursor.execute("DELETE FROM lessons WHERE subject_id = ?", (subject_id,))
+
+            # Delete knowledge nodes
+            cursor.execute(
+                "DELETE FROM knowledge_nodes WHERE subject_id = ?", (subject_id,)
+            )
+
+            # Delete the learning goal
+            cursor.execute(
+                "DELETE FROM learning_goals WHERE subject_id = ?", (subject_id,)
+            )
+
+            # Clear active subject if it was this one
+            cursor.execute(
+                "DELETE FROM settings WHERE key = 'active_subject' AND value = ?",
+                (subject_id,),
+            )
+
+            conn.commit()
+            return True
+
     def save_knowledge_node(self, node: KnowledgeNode) -> int:
         """Save a knowledge node to the database.
 

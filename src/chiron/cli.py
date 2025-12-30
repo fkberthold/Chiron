@@ -76,10 +76,36 @@ def init() -> None:
         existing = orchestrator.db.get_learning_goal(subject_id)
         if existing is not None:
             console.print(
-                f"[yellow]Subject '{subject_id}' already exists. "
-                f"Use 'chiron use {subject_id}' to switch to it.[/yellow]"
+                f"\n[yellow]Subject '{subject_id}' already exists.[/yellow]"
             )
-            return
+            console.print(f"[dim]Purpose: {existing.purpose_statement}[/dim]\n")
+
+            choice = Prompt.ask(
+                "What would you like to do?",
+                choices=["switch", "delete", "cancel"],
+                default="switch",
+            )
+
+            if choice == "switch":
+                orchestrator.set_active_subject(subject_id)
+                console.print(
+                    f"[green]Switched to subject: [bold]{subject_id}[/bold][/green]"
+                )
+                return
+            elif choice == "delete":
+                if Confirm.ask(
+                    "[red]Delete and re-create this subject?[/red]",
+                    default=False,
+                ):
+                    orchestrator.delete_subject(subject_id)
+                    console.print(f"[dim]Deleted '{subject_id}'[/dim]")
+                    # Continue to create new subject below
+                else:
+                    console.print("[dim]Cancelled.[/dim]")
+                    return
+            else:
+                console.print("[dim]Cancelled.[/dim]")
+                return
 
         # Initialize the subject
         goal = orchestrator.initialize_subject(subject_id, purpose)
@@ -331,6 +357,47 @@ def use(subject_id: str) -> None:
         console.print("[dim]Use 'chiron subjects' to see available subjects.[/dim]")
     except Exception as e:
         console.print(f"[red]Error switching subject: {e}[/red]")
+
+
+@cli.command()
+@click.argument("subject_id")
+@click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
+def delete(subject_id: str, force: bool) -> None:
+    """Delete a learning subject and all its data."""
+    try:
+        orchestrator = get_orchestrator()
+
+        # Check if subject exists
+        goal = orchestrator.db.get_learning_goal(subject_id)
+        if goal is None:
+            console.print(f"[red]Subject '{subject_id}' not found.[/red]")
+            console.print("[dim]Use 'chiron subjects' to see available subjects.[/dim]")
+            return
+
+        # Confirm deletion unless --force
+        if not force:
+            console.print("\n[yellow]This will permanently delete:[/yellow]")
+            console.print(f"  - Subject: [bold]{subject_id}[/bold]")
+            console.print(f"  - Purpose: {goal.purpose_statement}")
+            console.print("  - All lessons, progress, and research data\n")
+
+            if not Confirm.ask(
+                "[red]Are you sure you want to delete this subject?[/red]",
+                default=False,
+            ):
+                console.print("[dim]Deletion cancelled.[/dim]")
+                return
+
+        # Delete the subject
+        if orchestrator.delete_subject(subject_id):
+            console.print(
+                f"[green]Deleted subject: [bold]{subject_id}[/bold][/green]"
+            )
+        else:
+            console.print(f"[red]Failed to delete subject '{subject_id}'.[/red]")
+
+    except Exception as e:
+        console.print(f"[red]Error deleting subject: {e}[/red]")
 
 
 @cli.group()

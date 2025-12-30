@@ -154,3 +154,37 @@ def test_list_subjects(db: Database) -> None:
     subject_ids = [s.subject_id for s in subjects]
     assert "kubernetes" in subject_ids
     assert "python" in subject_ids
+
+
+def test_delete_subject(db: Database) -> None:
+    """Should delete a subject and all associated data."""
+    # Create a learning goal
+    goal = LearningGoal(
+        subject_id="to-delete",
+        purpose_statement="This will be deleted",
+    )
+    db.save_learning_goal(goal)
+
+    # Create some knowledge nodes
+    node = KnowledgeNode(
+        subject_id="to-delete",
+        title="Test Node",
+        depth=0,
+    )
+    db.save_knowledge_node(node)
+
+    # Verify they exist
+    assert db.get_learning_goal("to-delete") is not None
+    assert len(db.get_knowledge_tree("to-delete")) == 1
+
+    # Delete the subject
+    result = db.delete_subject("to-delete")
+    assert result is True
+
+    # Verify everything is gone
+    assert db.get_learning_goal("to-delete") is None
+    assert len(db.get_knowledge_tree("to-delete")) == 0
+
+    # Deleting again should return False
+    result = db.delete_subject("to-delete")
+    assert result is False
