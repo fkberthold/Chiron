@@ -13,6 +13,32 @@ from chiron.storage.vector_store import VectorStore
 
 console = Console()
 
+# Phrases that suggest the agent has finished its analysis
+_CONCLUSION_PHRASES = [
+    "good luck",
+    "you're all set",
+    "you are all set",
+    "ready to proceed",
+    "let me know if",
+    "feel free to",
+    "happy learning",
+    "enjoy your",
+    "best of luck",
+]
+
+
+def _appears_concluded(response: str) -> bool:
+    """Check if an agent response appears to conclude the conversation.
+
+    Args:
+        response: The agent's response text.
+
+    Returns:
+        True if the response contains conclusion phrases.
+    """
+    lower_response = response.lower()
+    return any(phrase in lower_response for phrase in _CONCLUSION_PHRASES)
+
 
 def get_orchestrator() -> Orchestrator:
     """Create and return a configured Orchestrator instance.
@@ -147,9 +173,25 @@ def init() -> None:
                         )
                         break
 
+                    # Handle empty input
+                    if not user_input.strip():
+                        console.print(
+                            "[dim]Type 'done' to finalize curriculum, "
+                            "'quit' to exit, or continue the conversation.[/dim]"
+                        )
+                        continue
+
                     # Continue the conversation
                     response = orchestrator.continue_curriculum_design(user_input)
                     console.print(f"\n{response}\n")
+
+                    # Check if agent appears to have concluded
+                    if _appears_concluded(response):
+                        console.print(
+                            "\n[cyan]The agent seems to have finished. "
+                            "Type 'done' to finalize, or continue if you have "
+                            "more questions.[/cyan]\n"
+                        )
 
             except Exception as e:
                 console.print(f"[red]Error during curriculum design: {e}[/red]")
