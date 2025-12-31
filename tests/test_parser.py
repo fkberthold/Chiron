@@ -277,3 +277,42 @@ Content.
 """
     parsed = parse_lesson_content(content)
     assert parsed.exercise_seeds == []
+
+
+def test_parse_srs_items():
+    """Test that SRS items are parsed as front|back tuples."""
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+Content.
+
+## SRS Items
+
+- What is X? | X is the first letter
+- Define Y | Y means something
+- How does Z work? | Z processes data
+"""
+    parsed = parse_lesson_content(content)
+    assert len(parsed.srs_items) == 3
+    assert parsed.srs_items[0] == ("What is X?", "X is the first letter")
+    assert parsed.srs_items[1] == ("Define Y", "Y means something")
+    assert parsed.srs_items[2] == ("How does Z work?", "Z processes data")
+
+
+def test_parse_srs_items_empty_when_missing():
+    """Test that srs_items is empty when section missing."""
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+Content.
+"""
+    parsed = parse_lesson_content(content)
+    assert parsed.srs_items == []

@@ -105,11 +105,27 @@ def parse_lesson_content(content: str) -> ParsedLesson:
             logger.warning("Failed to parse exercise seeds JSON: %s", e)
             exercise_seeds = []
 
+    # Extract SRS items from "- front | back" format
+    srs_items: list[tuple[str, str]] = []
+    srs_match = re.search(
+        r"## SRS Items\s*\n((?:- .+\n?)+)",
+        content,
+        re.MULTILINE,
+    )
+    if srs_match:
+        srs_text = srs_match.group(1)
+        for line in srs_text.strip().split("\n"):
+            line = line.strip()
+            if line.startswith("- ") and "|" in line:
+                parts = line[2:].split("|", 1)  # Remove "- " prefix, split on first |
+                if len(parts) == 2:
+                    srs_items.append((parts[0].strip(), parts[1].strip()))
+
     return ParsedLesson(
         title=title,
         objectives=objectives,
         audio_script=audio_script,
         diagrams=diagrams,
         exercise_seeds=exercise_seeds,
-        srs_items=[],
+        srs_items=srs_items,
     )
