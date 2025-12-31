@@ -503,7 +503,7 @@ class Database:
             now = datetime.now().isoformat()
 
             for front, back in items:
-                # Create hash of question for deduplication
+                # MD5 used for deduplication only (not for security purposes)
                 question_hash = hashlib.md5(front.encode()).hexdigest()
 
                 # Store as response with placeholder node_id (-1 for general SRS)
@@ -516,7 +516,11 @@ class Database:
                     (
                         -1,  # Placeholder node_id for lesson-generated SRS
                         question_hash,
-                        json.dumps({"front": front, "back": back}),
+                        json.dumps({
+                            "subject_id": subject_id,
+                            "front": front,
+                            "back": back,
+                        }),
                         0,  # Not yet answered
                         now,
                         now,  # Due immediately for first review

@@ -192,6 +192,8 @@ def test_delete_subject(db: Database) -> None:
 
 def test_add_srs_items(db: Database) -> None:
     """Test adding SRS items to database."""
+    import json
+
     # Need a subject first
     goal = LearningGoal(
         subject_id="test-subject",
@@ -208,6 +210,18 @@ def test_add_srs_items(db: Database) -> None:
     count = db.add_srs_items("test-subject", items)
 
     assert count == 2
+
+    # Verify data was stored with subject_id
+    with db._get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT response FROM responses WHERE node_id = -1")
+        rows = cursor.fetchall()
+        assert len(rows) == 2
+        for row in rows:
+            data = json.loads(row["response"])
+            assert data["subject_id"] == "test-subject"
+            assert "front" in data
+            assert "back" in data
 
 
 def test_add_srs_items_empty_list(db: Database) -> None:
