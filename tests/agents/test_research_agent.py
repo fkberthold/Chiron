@@ -16,6 +16,17 @@ def test_research_agent_initialization() -> None:
     assert agent.config.name == "research"
 
 
+def test_research_agent_initialization_with_tools() -> None:
+    """ResearchAgent should accept tools and executor."""
+    tools = [{"name": "test", "description": "Test", "input_schema": {"type": "object"}}]
+    executor = lambda name, args: {"result": "ok"}
+
+    agent = ResearchAgent(tools=tools, tool_executor=executor)
+
+    assert agent.tools == tools
+    assert agent.tool_executor is not None
+
+
 def test_research_agent_prompt_includes_validation() -> None:
     """Research agent prompt should include source validation."""
     prompt_lower = RESEARCH_AGENT_PROMPT.lower()

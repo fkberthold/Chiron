@@ -1,5 +1,7 @@
 """ResearchAgent for discovering and validating knowledge."""
 
+from typing import Any, Callable
+
 from chiron.agents.base import AgentConfig, BaseAgent
 
 RESEARCH_AGENT_PROMPT = """\
@@ -35,7 +37,7 @@ authoritative sources, validate facts, and store verified knowledge.
    - Only store facts with confidence > 0.7
 
 5. **Knowledge Storage**
-   Use the MCP tools to store validated knowledge:
+   Use the tools to store validated knowledge:
    - `store_knowledge` - Store validated facts with metadata
    - `vector_search` - Check for existing related knowledge
    - `get_knowledge_tree` - Understand current structure
@@ -89,14 +91,22 @@ When researching a topic:
 class ResearchAgent(BaseAgent):
     """Agent for researching and validating knowledge."""
 
-    def __init__(self, mcp_server_url: str | None = None) -> None:
-        """Initialize the Research Agent."""
+    def __init__(
+        self,
+        tools: list[dict[str, Any]] | None = None,
+        tool_executor: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> None:
+        """Initialize the Research Agent.
+
+        Args:
+            tools: Tool definitions for Claude API.
+            tool_executor: Function to execute tool calls.
+        """
         config = AgentConfig(
             name="research",
             system_prompt=RESEARCH_AGENT_PROMPT,
-            mcp_server_url=mcp_server_url,
         )
-        super().__init__(config)
+        super().__init__(config, tools=tools, tool_executor=tool_executor)
 
     def research_topic(self, topic_path: str, subject_id: str, context: str = "") -> str:
         """Research a specific topic.
@@ -118,7 +128,7 @@ Topic: {topic_path}
 Please:
 1. Search for authoritative sources
 2. Extract and validate key facts
-3. Store validated knowledge using the MCP tools
+3. Store validated knowledge using the tools
 4. Report what you found and stored"""
 
         return self.run(prompt)

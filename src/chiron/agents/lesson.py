@@ -1,5 +1,7 @@
 """LessonAgent for generating multi-modal learning content."""
 
+from typing import Any, Callable
+
 from chiron.agents.base import AgentConfig, BaseAgent
 
 LESSON_AGENT_PROMPT = """\
@@ -147,14 +149,22 @@ What should you do?
 class LessonAgent(BaseAgent):
     """Agent for generating personalized, multi-modal lesson content."""
 
-    def __init__(self, mcp_server_url: str | None = None) -> None:
-        """Initialize the Lesson Agent."""
+    def __init__(
+        self,
+        tools: list[dict[str, Any]] | None = None,
+        tool_executor: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> None:
+        """Initialize the Lesson Agent.
+
+        Args:
+            tools: Tool definitions for Claude API.
+            tool_executor: Function to execute tool calls.
+        """
         config = AgentConfig(
             name="lesson",
             system_prompt=LESSON_AGENT_PROMPT,
-            mcp_server_url=mcp_server_url,
         )
-        super().__init__(config)
+        super().__init__(config, tools=tools, tool_executor=tool_executor)
 
     def generate_lesson(
         self,

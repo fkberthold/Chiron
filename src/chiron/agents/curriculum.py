@@ -1,5 +1,7 @@
 """CurriculumAgent for designing learning coverage maps."""
 
+from typing import Any, Callable
+
 from chiron.agents.base import AgentConfig, BaseAgent
 
 CURRICULUM_AGENT_PROMPT = """\
@@ -74,14 +76,22 @@ The following topics are essential for your stated goal:
 class CurriculumAgent(BaseAgent):
     """Agent for designing learning curriculum and coverage maps."""
 
-    def __init__(self, mcp_server_url: str | None = None) -> None:
-        """Initialize the Curriculum Agent."""
+    def __init__(
+        self,
+        tools: list[dict[str, Any]] | None = None,
+        tool_executor: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> None:
+        """Initialize the Curriculum Agent.
+
+        Args:
+            tools: Tool definitions for Claude API.
+            tool_executor: Function to execute tool calls.
+        """
         config = AgentConfig(
             name="curriculum",
             system_prompt=CURRICULUM_AGENT_PROMPT,
-            mcp_server_url=mcp_server_url,
         )
-        super().__init__(config)
+        super().__init__(config, tools=tools, tool_executor=tool_executor)
 
     def design_curriculum(self, purpose_statement: str, subject: str) -> str:
         """Design a curriculum for a learning goal.

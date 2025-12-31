@@ -1,5 +1,7 @@
 """AssessmentAgent for interactive knowledge assessment."""
 
+from typing import Any, Callable
+
 from chiron.agents.base import AgentConfig, BaseAgent
 
 ASSESSMENT_AGENT_PROMPT = """\
@@ -95,18 +97,22 @@ After completing the assessment, provide a structured summary:
 class AssessmentAgent(BaseAgent):
     """Agent for conducting interactive knowledge assessments."""
 
-    def __init__(self, mcp_server_url: str | None = None) -> None:
+    def __init__(
+        self,
+        tools: list[dict[str, Any]] | None = None,
+        tool_executor: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> None:
         """Initialize the Assessment Agent.
 
         Args:
-            mcp_server_url: Optional URL for MCP server connection
+            tools: Tool definitions for Claude API.
+            tool_executor: Function to execute tool calls.
         """
         config = AgentConfig(
             name="assessment",
             system_prompt=ASSESSMENT_AGENT_PROMPT,
-            mcp_server_url=mcp_server_url,
         )
-        super().__init__(config)
+        super().__init__(config, tools=tools, tool_executor=tool_executor)
         self._assessment_started = False
         self._subject_id: str | None = None
 
