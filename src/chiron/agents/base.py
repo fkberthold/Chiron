@@ -1,8 +1,9 @@
 """Base agent class for Claude Code agents."""
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from anthropic import Anthropic
 

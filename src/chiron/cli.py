@@ -59,7 +59,6 @@ def get_orchestrator() -> Orchestrator:
         db=db,
         vector_store=vector_store,
         lessons_dir=config.lessons_dir,
-        mcp_server_url=f"http://{config.mcp_host}:{config.mcp_port}",
     )
 
 
