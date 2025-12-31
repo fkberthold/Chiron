@@ -1,13 +1,17 @@
 """Pipeline for generating lesson artifacts."""
 
 import json
+import logging
 import re
 import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 from chiron.content.diagrams import render_diagram, save_diagram
 from chiron.content.parser import ParsedLesson
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -138,12 +142,30 @@ def generate_lesson_artifacts(
 
     markdown_path.write_text("\n".join(md_lines), encoding="utf-8")
 
+    # Generate PDF via pandoc if available
+    pdf_path: Path | None = None
+    tools = check_available_tools()
+    if tools.get("pandoc"):
+        pdf_path = output_dir / "lesson.pdf"
+        try:
+            result = subprocess.run(
+                ["pandoc", str(markdown_path), "-o", str(pdf_path)],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                logger.warning("Pandoc failed: %s", result.stderr)
+                pdf_path = None
+        except Exception as e:
+            logger.warning("Pandoc error: %s", e)
+            pdf_path = None
+
     return LessonArtifacts(
         output_dir=output_dir,
         script_path=script_path,
         audio_path=None,  # TTS not yet implemented
         markdown_path=markdown_path,
-        pdf_path=None,  # Pandoc not yet implemented
+        pdf_path=pdf_path,
         diagram_paths=diagram_paths,
         exercises_path=exercises_path,
         srs_items_added=0,  # Database integration not yet done

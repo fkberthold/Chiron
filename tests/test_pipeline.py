@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from chiron.content.parser import DiagramSpec, ParsedLesson
 from chiron.content.pipeline import (
@@ -187,3 +188,44 @@ def test_generate_lesson_artifacts_includes_diagrams_in_markdown(tmp_path):
     assert "![Flow Chart]" in md_content
     assert "diagrams/flow-chart.png" in md_content
     assert "Shows the flow" in md_content
+
+
+def test_generate_lesson_artifacts_creates_pdf_when_pandoc_available(tmp_path):
+    """Test that PDF is created when pandoc is available."""
+    parsed = ParsedLesson(
+        title="Test",
+        objectives=["Learn"],
+        audio_script="Content.",
+        diagrams=[],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    # Mock pandoc being available and successful
+    with patch("shutil.which", return_value="/usr/bin/pandoc"):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            artifacts = generate_lesson_artifacts(parsed, tmp_path)
+
+    # PDF path should be set (even though file won't exist in mock)
+    assert artifacts.pdf_path == tmp_path / "lesson.pdf"
+
+
+def test_generate_lesson_artifacts_pdf_none_when_pandoc_unavailable(tmp_path):
+    """Test that PDF is None when pandoc not available."""
+    parsed = ParsedLesson(
+        title="Test",
+        objectives=["Learn"],
+        audio_script="Content.",
+        diagrams=[],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    with patch(
+        "chiron.content.pipeline.check_available_tools",
+        return_value={"pandoc": False, "plantuml": False, "coqui": False, "piper": False},
+    ):
+        artifacts = generate_lesson_artifacts(parsed, tmp_path)
+
+    assert artifacts.pdf_path is None
