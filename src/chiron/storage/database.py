@@ -1,5 +1,6 @@
 """SQLite database layer for Chiron."""
 
+import hashlib
 import json
 import sqlite3
 from collections.abc import Iterator
@@ -479,3 +480,47 @@ class Database:
                 """,
                 (key, value),
             )
+
+    def add_srs_items(
+        self,
+        subject_id: str,
+        items: list[tuple[str, str]],
+    ) -> int:
+        """Add SRS flashcard items for a subject.
+
+        Args:
+            subject_id: The subject these items belong to
+            items: List of (front, back) tuples
+
+        Returns:
+            Number of items added
+        """
+        if not items:
+            return 0
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            now = datetime.now().isoformat()
+
+            for front, back in items:
+                # Create hash of question for deduplication
+                question_hash = hashlib.md5(front.encode()).hexdigest()
+
+                # Store as response with placeholder node_id (-1 for general SRS)
+                cursor.execute(
+                    """
+                    INSERT INTO responses
+                        (node_id, question_hash, response, correct, timestamp, next_review)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        -1,  # Placeholder node_id for lesson-generated SRS
+                        question_hash,
+                        json.dumps({"front": front, "back": back}),
+                        0,  # Not yet answered
+                        now,
+                        now,  # Due immediately for first review
+                    ),
+                )
+
+            return len(items)

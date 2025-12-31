@@ -188,3 +188,29 @@ def test_delete_subject(db: Database) -> None:
     # Deleting again should return False
     result = db.delete_subject("to-delete")
     assert result is False
+
+
+def test_add_srs_items(db: Database) -> None:
+    """Test adding SRS items to database."""
+    # Need a subject first
+    goal = LearningGoal(
+        subject_id="test-subject",
+        purpose_statement="Learn testing",
+        status=SubjectStatus.INITIALIZING,
+    )
+    db.save_learning_goal(goal)
+
+    # Add SRS items
+    items = [
+        ("What is X?", "X is a variable"),
+        ("Define Y", "Y is a constant"),
+    ]
+    count = db.add_srs_items("test-subject", items)
+
+    assert count == 2
+
+
+def test_add_srs_items_empty_list(db: Database) -> None:
+    """Test adding empty SRS items list."""
+    count = db.add_srs_items("any-subject", [])
+    assert count == 0
