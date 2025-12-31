@@ -63,11 +63,29 @@ def parse_lesson_content(content: str) -> ParsedLesson:
     if audio_match:
         audio_script = audio_match.group(1).strip()
 
+    # Extract diagrams from Visual Aids section
+    diagrams: list[DiagramSpec] = []
+    # Pattern: ### Diagram N: Title, then plantuml block, then caption paragraph
+    diagram_pattern = re.compile(
+        r"### Diagram \d+:\s*(.+?)\n\s*"  # Title
+        r"```plantuml\s*\n(.*?)```\s*\n"  # PlantUML code
+        r"(.*?)(?=\n### Diagram|\n## |\Z)",  # Caption (until next diagram or section)
+        re.DOTALL,
+    )
+    for match in diagram_pattern.finditer(content):
+        diagrams.append(
+            DiagramSpec(
+                title=match.group(1).strip(),
+                puml_code=match.group(2).strip(),
+                caption=match.group(3).strip(),
+            )
+        )
+
     return ParsedLesson(
         title=title,
         objectives=objectives,
         audio_script=audio_script,
-        diagrams=[],
+        diagrams=diagrams,
         exercise_seeds=[],
         srs_items=[],
     )

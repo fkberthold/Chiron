@@ -108,3 +108,70 @@ def test_parse_audio_script_strips_whitespace():
 """
     parsed = parse_lesson_content(content)
     assert parsed.audio_script == "Hello there."
+
+
+def test_parse_diagrams():
+    """Test that PlantUML diagrams are extracted with titles and captions."""
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+Content here.
+
+## Visual Aids
+
+### Diagram 1: Class Hierarchy
+
+```plantuml
+@startuml
+class Animal
+class Dog extends Animal
+@enduml
+```
+
+This diagram shows the class hierarchy.
+
+### Diagram 2: Sequence Flow
+
+```plantuml
+@startuml
+A -> B: message
+B -> C: response
+@enduml
+```
+
+Shows the message flow between components.
+
+## Exercise Seeds
+"""
+    parsed = parse_lesson_content(content)
+    assert len(parsed.diagrams) == 2
+
+    assert parsed.diagrams[0].title == "Class Hierarchy"
+    assert "@startuml" in parsed.diagrams[0].puml_code
+    assert "class Animal" in parsed.diagrams[0].puml_code
+    assert "class hierarchy" in parsed.diagrams[0].caption.lower()
+
+    assert parsed.diagrams[1].title == "Sequence Flow"
+    assert "A -> B" in parsed.diagrams[1].puml_code
+    assert "message flow" in parsed.diagrams[1].caption.lower()
+
+
+def test_parse_diagrams_empty_when_no_visual_aids():
+    """Test that diagrams list is empty when section missing."""
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+Content.
+
+## Exercise Seeds
+"""
+    parsed = parse_lesson_content(content)
+    assert parsed.diagrams == []
