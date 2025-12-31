@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from chiron.content.parser import ParsedLesson
+from chiron.content.parser import DiagramSpec, ParsedLesson
 from chiron.content.pipeline import (
     LessonArtifacts,
     check_available_tools,
@@ -136,3 +136,54 @@ def test_generate_lesson_artifacts_creates_lesson_md(tmp_path):
     assert "# My Test Lesson" in md_content
     assert "Understand concepts" in md_content
     assert "Apply knowledge" in md_content
+
+
+def test_generate_lesson_artifacts_saves_diagrams(tmp_path):
+    """Test that diagrams are saved as .puml files."""
+    parsed = ParsedLesson(
+        title="Test",
+        objectives=["Learn"],
+        audio_script="Content.",
+        diagrams=[
+            DiagramSpec(
+                title="Class Diagram",
+                puml_code="@startuml\nclass Foo\n@enduml",
+                caption="Shows classes.",
+            ),
+        ],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    generate_lesson_artifacts(parsed, tmp_path)
+
+    diagrams_dir = tmp_path / "diagrams"
+    assert diagrams_dir.exists()
+    puml_files = list(diagrams_dir.glob("*.puml"))
+    assert len(puml_files) == 1
+    assert "class-diagram.puml" in [f.name for f in puml_files]
+
+
+def test_generate_lesson_artifacts_includes_diagrams_in_markdown(tmp_path):
+    """Test that markdown includes diagram image references."""
+    parsed = ParsedLesson(
+        title="Test",
+        objectives=["Learn"],
+        audio_script="Content.",
+        diagrams=[
+            DiagramSpec(
+                title="Flow Chart",
+                puml_code="@startuml\nA -> B\n@enduml",
+                caption="Shows the flow.",
+            ),
+        ],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    artifacts = generate_lesson_artifacts(parsed, tmp_path)
+
+    md_content = artifacts.markdown_path.read_text()
+    assert "![Flow Chart]" in md_content
+    assert "diagrams/flow-chart.png" in md_content
+    assert "Shows the flow" in md_content

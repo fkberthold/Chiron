@@ -6,6 +6,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from chiron.content.diagrams import render_diagram, save_diagram
 from chiron.content.parser import ParsedLesson
 
 
@@ -93,6 +94,23 @@ def generate_lesson_artifacts(
         encoding="utf-8",
     )
 
+    # Process diagrams
+    diagram_paths: list[Path] = []
+    diagram_refs: list[tuple[str, str, str]] = []  # (title, filename, caption)
+
+    if parsed.diagrams:
+        diagrams_dir = output_dir / "diagrams"
+        for diagram in parsed.diagrams:
+            slug = slugify(diagram.title)
+            puml_path = save_diagram(diagram.puml_code, diagrams_dir, slug)
+            diagram_paths.append(puml_path)
+
+            # Try to render to PNG
+            render_diagram(puml_path, "png")
+
+            # Store reference for markdown (use .png extension for image ref)
+            diagram_refs.append((diagram.title, f"{slug}.png", diagram.caption))
+
     # Write lesson.md
     markdown_path = output_dir / "lesson.md"
     md_lines = [
@@ -105,6 +123,19 @@ def generate_lesson_artifacts(
         md_lines.append(f"{i}. {obj}")
     md_lines.append("")
 
+    # Add Visual Aids section if there are diagrams
+    if diagram_refs:
+        md_lines.append("## Visual Aids")
+        md_lines.append("")
+        for title, filename, caption in diagram_refs:
+            md_lines.append(f"### {title}")
+            md_lines.append("")
+            md_lines.append(f"![{title}](diagrams/{filename})")
+            md_lines.append("")
+            if caption:
+                md_lines.append(caption)
+                md_lines.append("")
+
     markdown_path.write_text("\n".join(md_lines), encoding="utf-8")
 
     return LessonArtifacts(
@@ -113,7 +144,7 @@ def generate_lesson_artifacts(
         audio_path=None,  # TTS not yet implemented
         markdown_path=markdown_path,
         pdf_path=None,  # Pandoc not yet implemented
-        diagram_paths=[],  # Diagrams not yet implemented
+        diagram_paths=diagram_paths,
         exercises_path=exercises_path,
         srs_items_added=0,  # Database integration not yet done
     )
