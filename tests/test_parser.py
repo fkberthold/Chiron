@@ -175,3 +175,41 @@ Content.
 """
     parsed = parse_lesson_content(content)
     assert parsed.diagrams == []
+
+
+def test_parse_diagram_no_caption_before_next_section():
+    """Test diagram with no caption text immediately before next section header.
+
+    Regression test: The regex should not capture the section header as caption.
+    """
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+Content here.
+
+## Visual Aids
+
+### Diagram 1: Simple Diagram
+
+```plantuml
+@startuml
+A -> B
+@enduml
+```
+
+## Exercise Seeds
+
+1. Some exercise
+"""
+    parsed = parse_lesson_content(content)
+    assert len(parsed.diagrams) == 1
+    assert parsed.diagrams[0].title == "Simple Diagram"
+    assert "A -> B" in parsed.diagrams[0].puml_code
+    # The caption should be empty, NOT contain the next section header
+    assert parsed.diagrams[0].caption == ""
+    assert "Exercise Seeds" not in parsed.diagrams[0].caption
+    assert "##" not in parsed.diagrams[0].caption

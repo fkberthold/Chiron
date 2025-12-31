@@ -69,15 +69,20 @@ def parse_lesson_content(content: str) -> ParsedLesson:
     diagram_pattern = re.compile(
         r"### Diagram \d+:\s*(.+?)\n\s*"  # Title
         r"```plantuml\s*\n(.*?)```\s*\n"  # PlantUML code
-        r"(.*?)(?=\n### Diagram|\n## |\Z)",  # Caption (until next diagram or section)
+        r"(.*?)(?=\n\s*### Diagram|\n\s*## |\Z)",  # Caption (until next diagram or section)
         re.DOTALL,
     )
     for match in diagram_pattern.finditer(content):
+        caption_text = match.group(3).strip()
+        # Post-process: ensure section headers aren't captured as caption
+        # (handles edge cases where regex lookahead didn't catch it)
+        if caption_text.startswith("## ") or caption_text.startswith("### "):
+            caption_text = ""
         diagrams.append(
             DiagramSpec(
                 title=match.group(1).strip(),
                 puml_code=match.group(2).strip(),
-                caption=match.group(3).strip(),
+                caption=caption_text,
             )
         )
 
