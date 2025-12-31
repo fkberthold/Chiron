@@ -316,3 +316,34 @@ Content.
 """
     parsed = parse_lesson_content(content)
     assert parsed.srs_items == []
+
+
+def test_parse_srs_items_with_blank_lines():
+    """Test that SRS items with blank lines between them are all captured.
+
+    LLM output often includes blank lines between items for readability.
+    """
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+Content.
+
+## SRS Items
+
+- What is X? | X is the answer
+
+- Define Y | Y means something
+
+- How does Z work? | Z processes data
+
+## Next Section
+"""
+    parsed = parse_lesson_content(content)
+    assert len(parsed.srs_items) == 3
+    assert parsed.srs_items[0] == ("What is X?", "X is the answer")
+    assert parsed.srs_items[1] == ("Define Y", "Y means something")
+    assert parsed.srs_items[2] == ("How does Z work?", "Z processes data")

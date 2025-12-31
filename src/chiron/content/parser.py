@@ -108,9 +108,9 @@ def parse_lesson_content(content: str) -> ParsedLesson:
     # Extract SRS items from "- front | back" format
     srs_items: list[tuple[str, str]] = []
     srs_match = re.search(
-        r"## SRS Items\s*\n((?:- .+\n?)+)",
+        r"## SRS Items\s*\n(.*?)(?=\n## |\Z)",
         content,
-        re.MULTILINE,
+        re.DOTALL,
     )
     if srs_match:
         srs_text = srs_match.group(1)
