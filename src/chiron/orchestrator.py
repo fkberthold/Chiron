@@ -1,6 +1,7 @@
 """Workflow orchestrator with state machine for Chiron learning sessions."""
 
 from collections.abc import Callable
+from datetime import date
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,8 @@ from chiron.agents import (
     LessonAgent,
     ResearchAgent,
 )
+from chiron.content.parser import parse_lesson_content
+from chiron.content.pipeline import LessonArtifacts, generate_lesson_artifacts
 from chiron.models import LearningGoal
 from chiron.storage.database import Database
 from chiron.storage.vector_store import VectorStore
@@ -334,11 +337,11 @@ class Orchestrator:
         """
         return self.assessment_agent.evaluate_response(user_response)
 
-    def generate_lesson(self) -> str:
+    def generate_lesson(self) -> LessonArtifacts:
         """Generate a lesson based on assessment results.
 
         Returns:
-            The generated lesson content.
+            LessonArtifacts with paths to all generated files.
 
         Raises:
             ValueError: If no active subject is set.
@@ -354,14 +357,39 @@ class Orchestrator:
 
         # Get knowledge tree for topics
         nodes = self.db.get_knowledge_tree(subject_id)
-        topics = [node.title for node in nodes[:5]]  # Limit to first 5 topics
+        topics = [node.title for node in nodes[:5]]
 
-        self.state = WorkflowState.DELIVERING_LESSON
-        return self.lesson_agent.generate_lesson(
+        # Generate raw lesson content
+        raw_content = self.lesson_agent.generate_lesson(
             subject_id=subject_id,
             topics=topics if topics else ["Introduction"],
             assessment_summary=assessment_summary,
         )
+
+        # Parse structured output
+        parsed = parse_lesson_content(raw_content)
+
+        # Generate artifacts
+        output_dir = self.lessons_dir / subject_id / date.today().isoformat()
+        artifacts = generate_lesson_artifacts(parsed, output_dir)
+
+        # Store SRS items in database
+        if parsed.srs_items:
+            self.db.add_srs_items(subject_id, parsed.srs_items)
+            # Update artifacts with actual count
+            artifacts = LessonArtifacts(
+                output_dir=artifacts.output_dir,
+                script_path=artifacts.script_path,
+                audio_path=artifacts.audio_path,
+                markdown_path=artifacts.markdown_path,
+                pdf_path=artifacts.pdf_path,
+                diagram_paths=artifacts.diagram_paths,
+                exercises_path=artifacts.exercises_path,
+                srs_items_added=len(parsed.srs_items),
+            )
+
+        self.state = WorkflowState.DELIVERING_LESSON
+        return artifacts
 
     def get_research_progress(self, subject_id: str | None = None) -> dict[str, Any]:
         """Get research progress for a subject.
