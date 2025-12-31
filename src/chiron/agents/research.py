@@ -1,6 +1,7 @@
 """ResearchAgent for discovering and validating knowledge."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from chiron.agents.base import AgentConfig, BaseAgent
 
@@ -38,9 +39,19 @@ authoritative sources, validate facts, and store verified knowledge.
 
 5. **Knowledge Storage**
    Use the tools to store validated knowledge:
+   - `save_knowledge_node` - Create topic nodes when you discover new topics/subtopics
    - `store_knowledge` - Store validated facts with metadata
    - `vector_search` - Check for existing related knowledge
    - `get_knowledge_tree` - Understand current structure
+
+   **IMPORTANT: Creating the Knowledge Tree**
+   - Before storing facts, create knowledge nodes for new topics you discover
+   - Parse topic_path into hierarchy (e.g., "Kubernetes/Pods/Containers")
+   - Create parent nodes before children (depth 0, then 1, then 2...)
+   - Example: For topic "Kubernetes/Pods", create:
+     1. Node(title="Kubernetes", depth=0)
+     2. Node(title="Pods", depth=1, parent_id=<kubernetes_node_id>)
+   - When storing facts, use the topic title in topic_path parameter
 
 ## Output Format for Research Session
 
@@ -53,6 +64,10 @@ When researching a topic:
 1. [URL] (type: official_docs, score: 0.85)
 2. [URL] (type: academic, score: 0.92)
 ...
+
+### Knowledge Tree Created
+- Created node: [Topic] (depth: 0, id: 1)
+- Created node: [Subtopic] (depth: 1, parent_id: 1, id: 2)
 
 ### Key Facts Extracted
 
