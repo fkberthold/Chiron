@@ -59,4 +59,4 @@ def record_assessment(
         lesson_id=lesson_id,
     )
     # TODO: Save to database when method is implemented
-    return assessment.model_dump()
+    return assessment.model_dump(mode='json')

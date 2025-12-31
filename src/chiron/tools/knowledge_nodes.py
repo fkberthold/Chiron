@@ -24,7 +24,7 @@ def get_knowledge_node(
         The knowledge node as a dict, or None if not found.
     """
     node = db.get_knowledge_node(node_id)
-    return node.model_dump() if node else None
+    return node.model_dump(mode='json') if node else None
 
 
 def get_knowledge_tree(
@@ -44,7 +44,7 @@ def get_knowledge_tree(
         A list of all knowledge nodes for the subject.
     """
     nodes = db.get_knowledge_tree(subject_id)
-    return [node.model_dump() for node in nodes]
+    return [node.model_dump(mode='json') for node in nodes]
 
 
 def save_knowledge_node(
@@ -89,4 +89,4 @@ def save_knowledge_node(
     )
     saved_id = db.save_knowledge_node(node)
     node.id = saved_id
-    return node.model_dump()
+    return node.model_dump(mode='json')

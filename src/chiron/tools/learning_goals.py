@@ -24,7 +24,7 @@ def get_learning_goal(
         The learning goal as a dict, or None if not found.
     """
     goal = db.get_learning_goal(subject_id)
-    return goal.model_dump() if goal else None
+    return goal.model_dump(mode='json') if goal else None
 
 
 def save_learning_goal(
@@ -54,4 +54,4 @@ def save_learning_goal(
     )
     saved_id = db.save_learning_goal(goal)
     goal.id = saved_id
-    return goal.model_dump()
+    return goal.model_dump(mode='json')

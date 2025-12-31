@@ -56,4 +56,4 @@ def list_subjects(
         A list of all learning goals as dicts.
     """
     goals = db.list_subjects()
-    return [goal.model_dump() for goal in goals]
+    return [goal.model_dump(mode='json') for goal in goals]

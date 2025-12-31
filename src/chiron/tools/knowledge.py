@@ -78,4 +78,4 @@ def vector_search(
         top_k=top_k,
         min_confidence=min_confidence,
     )
-    return [chunk.model_dump() for chunk in chunks]
+    return [chunk.model_dump(mode='json') for chunk in chunks]
