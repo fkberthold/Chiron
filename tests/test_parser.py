@@ -62,3 +62,49 @@ Content here.
     assert len(parsed.objectives) == 3
     assert parsed.objectives[0] == "First objective"
     assert parsed.objectives[2] == "Third objective"
+
+
+def test_parse_audio_script():
+    """Test that audio script section is extracted."""
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn stuff
+
+## Audio Script
+
+Welcome to today's lesson on Python.
+
+We'll cover variables and types.
+
+Let's get started with the basics.
+
+## Visual Aids
+
+### Diagram 1: Overview
+"""
+    parsed = parse_lesson_content(content)
+    assert "Welcome to today's lesson" in parsed.audio_script
+    assert "Let's get started" in parsed.audio_script
+    # Should not include next section header
+    assert "## Visual Aids" not in parsed.audio_script
+    assert "### Diagram" not in parsed.audio_script
+
+
+def test_parse_audio_script_strips_whitespace():
+    """Test that audio script has leading/trailing whitespace stripped."""
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+
+   Hello there.
+
+
+## Visual Aids
+"""
+    parsed = parse_lesson_content(content)
+    assert parsed.audio_script == "Hello there."

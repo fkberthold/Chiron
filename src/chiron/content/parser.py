@@ -53,10 +53,20 @@ def parse_lesson_content(content: str) -> ParsedLesson:
             if line.strip()
         ]
 
+    # Extract audio script - everything between ## Audio Script and next ## header
+    audio_script = ""
+    audio_match = re.search(
+        r"## Audio Script\s*\n(.*?)(?=\n## |\Z)",
+        content,
+        re.DOTALL,
+    )
+    if audio_match:
+        audio_script = audio_match.group(1).strip()
+
     return ParsedLesson(
         title=title,
         objectives=objectives,
-        audio_script="",
+        audio_script=audio_script,
         diagrams=[],
         exercise_seeds=[],
         srs_items=[],
