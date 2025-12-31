@@ -1,13 +1,16 @@
 """Command-line interface for Chiron."""
 
+import json
 import threading
 import time
+from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.live import Live
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
+from rich.tree import Tree
 
 from chiron import __version__
 from chiron.config import get_config
@@ -43,6 +46,11 @@ def _appears_concluded(response: str) -> bool:
     """
     lower_response = response.lower()
     return any(phrase in lower_response for phrase in _CONCLUSION_PHRASES)
+
+
+def _word_count(path: Path) -> int:
+    """Count words in a text file."""
+    return len(path.read_text().split())
 
 
 def get_orchestrator() -> Orchestrator:
@@ -249,8 +257,53 @@ def lesson() -> None:
                     console.print(
                         "\n[yellow]Generating personalized lesson...[/yellow]\n"
                     )
-                    lesson_content = orchestrator.generate_lesson()
-                    console.print(lesson_content)
+
+                    with console.status("[bold green]Creating lesson materials..."):
+                        artifacts = orchestrator.generate_lesson()
+
+                    # Display summary tree
+                    tree = Tree(f"[bold]Lesson generated: {artifacts.output_dir}[/bold]")
+
+                    # Script
+                    word_count = _word_count(artifacts.script_path)
+                    tree.add(f"[green]✓[/green] script.txt ({word_count:,} words)")
+
+                    # Audio
+                    if artifacts.audio_path:
+                        tree.add("[green]✓[/green] audio.mp3")
+                    else:
+                        tree.add("[yellow]○[/yellow] audio.mp3 (TTS not available)")
+
+                    # Markdown
+                    tree.add("[green]✓[/green] lesson.md")
+
+                    # PDF
+                    if artifacts.pdf_path:
+                        tree.add("[green]✓[/green] lesson.pdf")
+                    else:
+                        tree.add("[yellow]○[/yellow] lesson.pdf (pandoc not available)")
+
+                    # Diagrams
+                    if artifacts.diagram_paths:
+                        diagrams_branch = tree.add("diagrams/")
+                        for p in artifacts.diagram_paths:
+                            if p.suffix == ".png":
+                                diagrams_branch.add(f"[green]✓[/green] {p.name}")
+                    else:
+                        tree.add("[dim]○[/dim] diagrams/ (none generated)")
+
+                    # Exercises
+                    exercises = json.loads(artifacts.exercises_path.read_text())
+                    tree.add(f"[green]✓[/green] exercises.json ({len(exercises)} seeds)")
+
+                    # SRS
+                    if artifacts.srs_items_added > 0:
+                        tree.add(
+                            f"[green]✓[/green] {artifacts.srs_items_added} SRS items added"
+                        )
+
+                    console.print(tree)
+                    console.print("\n[dim]Run 'chiron exercises' to practice.[/dim]")
                     break
 
                 # Continue assessment
