@@ -52,6 +52,22 @@ def test_orchestrator_can_set_active_subject(orchestrator: Orchestrator) -> None
     assert orchestrator.get_active_subject() == "test"
 
 
+def test_orchestrator_creates_tool_executor(orchestrator: Orchestrator) -> None:
+    """Orchestrator should create tool executor bound to db/vector_store."""
+    executor = orchestrator._create_tool_executor()
+
+    assert callable(executor)
+
+
+def test_orchestrator_research_agent_has_tools(orchestrator: Orchestrator) -> None:
+    """research_agent should have tools configured."""
+    agent = orchestrator.research_agent
+
+    assert agent.tools is not None
+    assert len(agent.tools) > 0
+    assert agent.tool_executor is not None
+
+
 class TestGetResearchProgress:
     """Tests for get_research_progress method."""
 

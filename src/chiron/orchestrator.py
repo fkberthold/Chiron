@@ -2,7 +2,7 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from chiron.agents import (
     AssessmentAgent,
@@ -13,6 +13,7 @@ from chiron.agents import (
 from chiron.models import LearningGoal
 from chiron.storage.database import Database
 from chiron.storage.vector_store import VectorStore
+from chiron.tools import TOOL_REGISTRY, get_all_tool_definitions
 
 
 class WorkflowState(str, Enum):
@@ -35,7 +36,6 @@ class Orchestrator:
         db: Database,
         vector_store: VectorStore,
         lessons_dir: Path,
-        mcp_server_url: str | None = None,
     ) -> None:
         """Initialize the orchestrator.
 
@@ -43,21 +43,37 @@ class Orchestrator:
             db: Database instance for structured data.
             vector_store: VectorStore instance for semantic search.
             lessons_dir: Directory for storing lesson files.
-            mcp_server_url: Optional URL for MCP server connection.
         """
         self.db = db
         self.vector_store = vector_store
         self.lessons_dir = lessons_dir
-        self.mcp_server_url = mcp_server_url
 
         self._state = WorkflowState.IDLE
         self._active_subject_id: str | None = None
+
+        # Tool infrastructure
+        self._tool_executor = self._create_tool_executor()
+        self._tool_definitions = get_all_tool_definitions()
 
         # Lazy-loaded agents
         self._curriculum_agent: CurriculumAgent | None = None
         self._research_agent: ResearchAgent | None = None
         self._lesson_agent: LessonAgent | None = None
         self._assessment_agent: AssessmentAgent | None = None
+
+    def _create_tool_executor(self) -> Callable[[str, dict[str, Any]], dict[str, Any]]:
+        """Create tool executor bound to this orchestrator's db/vector_store."""
+
+        def execute(name: str, args: dict[str, Any]) -> dict[str, Any]:
+            func = TOOL_REGISTRY.get(name)
+            if func is None:
+                return {"error": f"Unknown tool: {name}"}
+            try:
+                return func(self.db, self.vector_store, **args)
+            except Exception as e:
+                return {"error": str(e)}
+
+        return execute
 
     @property
     def state(self) -> WorkflowState:
@@ -74,7 +90,8 @@ class Orchestrator:
         """Get or create the curriculum agent."""
         if self._curriculum_agent is None:
             self._curriculum_agent = CurriculumAgent(
-                mcp_server_url=self.mcp_server_url
+                tools=self._tool_definitions,
+                tool_executor=self._tool_executor,
             )
         return self._curriculum_agent
 
@@ -82,14 +99,20 @@ class Orchestrator:
     def research_agent(self) -> ResearchAgent:
         """Get or create the research agent."""
         if self._research_agent is None:
-            self._research_agent = ResearchAgent(mcp_server_url=self.mcp_server_url)
+            self._research_agent = ResearchAgent(
+                tools=self._tool_definitions,
+                tool_executor=self._tool_executor,
+            )
         return self._research_agent
 
     @property
     def lesson_agent(self) -> LessonAgent:
         """Get or create the lesson agent."""
         if self._lesson_agent is None:
-            self._lesson_agent = LessonAgent(mcp_server_url=self.mcp_server_url)
+            self._lesson_agent = LessonAgent(
+                tools=self._tool_definitions,
+                tool_executor=self._tool_executor,
+            )
         return self._lesson_agent
 
     @property
@@ -97,7 +120,8 @@ class Orchestrator:
         """Get or create the assessment agent."""
         if self._assessment_agent is None:
             self._assessment_agent = AssessmentAgent(
-                mcp_server_url=self.mcp_server_url
+                tools=self._tool_definitions,
+                tool_executor=self._tool_executor,
             )
         return self._assessment_agent
 
