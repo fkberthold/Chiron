@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from chiron.content.pipeline import LessonArtifacts, check_available_tools
+from chiron.content.pipeline import LessonArtifacts, check_available_tools, slugify
 
 
 def test_lesson_artifacts_dataclass():
@@ -31,3 +31,19 @@ def test_check_available_tools_returns_dict():
     assert "pandoc" in tools
     # All values should be booleans
     assert all(isinstance(v, bool) for v in tools.values())
+
+
+def test_slugify_simple():
+    """Test slugify with simple title."""
+    assert slugify("Card Strength") == "card-strength"
+
+
+def test_slugify_special_chars():
+    """Test slugify removes special characters."""
+    assert slugify("What's Next?") == "whats-next"
+    assert slugify("Class/Type Hierarchy") == "classtype-hierarchy"
+
+
+def test_slugify_multiple_spaces():
+    """Test slugify handles multiple spaces."""
+    assert slugify("Too   Many   Spaces") == "too-many-spaces"

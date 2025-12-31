@@ -1,5 +1,6 @@
 """Pipeline for generating lesson artifacts."""
 
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,3 +41,21 @@ def check_available_tools() -> dict[str, bool]:
         "plantuml": shutil.which("plantuml") is not None,
         "pandoc": shutil.which("pandoc") is not None,
     }
+
+
+def slugify(text: str) -> str:
+    """Convert text to URL-friendly slug.
+
+    Args:
+        text: Text to slugify
+
+    Returns:
+        Lowercase slug with hyphens instead of spaces
+    """
+    # Lowercase
+    slug = text.lower()
+    # Remove non-alphanumeric (except spaces)
+    slug = re.sub(r"[^a-z0-9\s]", "", slug)
+    # Replace spaces with hyphens
+    slug = re.sub(r"\s+", "-", slug.strip())
+    return slug
