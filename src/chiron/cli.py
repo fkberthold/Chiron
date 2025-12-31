@@ -1,7 +1,11 @@
 """Command-line interface for Chiron."""
 
+import threading
+import time
+
 import click
 from rich.console import Console
+from rich.live import Live
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
@@ -481,18 +485,29 @@ def research_start() -> None:
         progress_display.start_timer()
 
         try:
-            # Show initial tree state
-            console.print(progress_display.render())
+            # Run initial research with live updating progress display
+            response_container = {}
 
-            # Run initial research with spinner
-            with console.status(
-                "[bold cyan]Researching...[/bold cyan]", spinner="dots"
-            ):
-                response = orchestrator.start_research()
+            def run_research():
+                response_container["result"] = orchestrator.start_research()
 
-            # Show updated tree after research
-            progress_display.update_status("Research complete.")
-            console.print(progress_display.render())
+            # Start research in background thread
+            research_thread = threading.Thread(target=run_research, daemon=True)
+            research_thread.start()
+
+            # Live update the progress display while research runs
+            with Live(
+                progress_display.render(), console=console, refresh_per_second=2
+            ) as live:
+                while research_thread.is_alive():
+                    live.update(progress_display.render())
+                    time.sleep(0.5)
+
+                # Final update after completion
+                progress_display.update_status("Research complete.")
+                live.update(progress_display.render())
+
+            response = response_container.get("result", "")
             console.print(f"\n{response}\n")
 
             # Interactive loop
@@ -511,19 +526,35 @@ def research_start() -> None:
                 if not user_input.strip():
                     continue
 
-                # Research with spinner
+                # Research with live updates
                 progress_display.set_active_topic(user_input)
-                console.print(progress_display.render())
+                response_container = {}
 
-                with console.status(
-                    f"[bold cyan]Researching: {user_input}...[/bold cyan]",
-                    spinner="dots",
-                ):
-                    response = orchestrator.continue_research(user_input)
+                def run_continue_research():
+                    response_container["result"] = orchestrator.continue_research(
+                        user_input
+                    )
 
-                progress_display.set_active_topic(None)
-                progress_display.update_status("Research complete.")
-                console.print(progress_display.render())
+                # Start research in background thread
+                research_thread = threading.Thread(
+                    target=run_continue_research, daemon=True
+                )
+                research_thread.start()
+
+                # Live update the progress display while research runs
+                with Live(
+                    progress_display.render(), console=console, refresh_per_second=2
+                ) as live:
+                    while research_thread.is_alive():
+                        live.update(progress_display.render())
+                        time.sleep(0.5)
+
+                    # Final update after completion
+                    progress_display.set_active_topic(None)
+                    progress_display.update_status("Research complete.")
+                    live.update(progress_display.render())
+
+                response = response_container.get("result", "")
                 console.print(f"\n{response}\n")
 
         except Exception as e:
