@@ -47,3 +47,8 @@ def test_slugify_special_chars():
 def test_slugify_multiple_spaces():
     """Test slugify handles multiple spaces."""
     assert slugify("Too   Many   Spaces") == "too-many-spaces"
+
+
+def test_slugify_preserves_hyphens():
+    """Test slugify preserves meaningful hyphens."""
+    assert slugify("UTF-8 Encoding") == "utf-8-encoding"

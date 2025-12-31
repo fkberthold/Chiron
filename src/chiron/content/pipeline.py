@@ -54,8 +54,10 @@ def slugify(text: str) -> str:
     """
     # Lowercase
     slug = text.lower()
-    # Remove non-alphanumeric (except spaces)
-    slug = re.sub(r"[^a-z0-9\s]", "", slug)
-    # Replace spaces with hyphens
-    slug = re.sub(r"\s+", "-", slug.strip())
+    # Remove non-alphanumeric (except spaces and hyphens)
+    slug = re.sub(r"[^a-z0-9\s-]", "", slug)
+    # Collapse multiple hyphens/spaces into single hyphen
+    slug = re.sub(r"[\s-]+", "-", slug.strip())
+    # Remove leading/trailing hyphens
+    slug = slug.strip("-")
     return slug
