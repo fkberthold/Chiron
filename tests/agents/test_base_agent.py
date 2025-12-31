@@ -1,5 +1,6 @@
 """Tests for base agent class."""
 
+import json
 from unittest.mock import MagicMock
 
 from chiron.agents.base import AgentConfig, BaseAgent
@@ -160,3 +161,69 @@ def test_base_agent_continue_conversation() -> None:
     assert agent.messages[2]["content"] == "Second message"
     assert agent.messages[3]["content"] == "Second response"
     assert mock_client.messages.create.call_count == 2
+
+
+def test_base_agent_executes_tools_and_loops() -> None:
+    """BaseAgent should execute tools and loop until no more tool calls."""
+    config = AgentConfig(name="test", system_prompt="Test prompt")
+
+    # Create tool executor mock
+    tool_executor = MagicMock()
+    tool_executor.return_value = {"status": "stored", "topic": "test"}
+
+    # Create agent with tools
+    tools = [{"name": "store_knowledge", "description": "Store", "input_schema": {"type": "object", "properties": {}}}]
+    agent = BaseAgent(config, tools=tools, tool_executor=tool_executor)
+
+    # Mock client
+    mock_client = MagicMock()
+
+    # First response: tool_use
+    mock_tool_use = MagicMock()
+    mock_tool_use.type = "tool_use"
+    mock_tool_use.id = "tool_123"
+    mock_tool_use.name = "store_knowledge"
+    mock_tool_use.input = {"content": "test fact"}
+    mock_response1 = MagicMock()
+    mock_response1.content = [mock_tool_use]
+
+    # Second response: text only (no tools)
+    mock_text = MagicMock()
+    mock_text.type = "text"
+    mock_text.text = "Done storing knowledge."
+    mock_response2 = MagicMock()
+    mock_response2.content = [mock_text]
+
+    mock_client.messages.create.side_effect = [mock_response1, mock_response2]
+    agent._client = mock_client
+
+    result = agent.run("Store some knowledge")
+
+    # Should have called API twice (tool call + final response)
+    assert mock_client.messages.create.call_count == 2
+
+    # Should have executed the tool
+    tool_executor.assert_called_once_with("store_knowledge", {"content": "test fact"})
+
+    # Should return final text
+    assert result == "Done storing knowledge."
+
+
+def test_base_agent_without_tools_works_as_before() -> None:
+    """BaseAgent without tools should work exactly as before."""
+    config = AgentConfig(name="test", system_prompt="Test prompt")
+    agent = BaseAgent(config)  # No tools
+
+    mock_client = MagicMock()
+    mock_text = MagicMock()
+    mock_text.text = "Hello!"
+    mock_text.type = "text"
+    mock_response = MagicMock()
+    mock_response.content = [mock_text]
+    mock_client.messages.create.return_value = mock_response
+    agent._client = mock_client
+
+    result = agent.run("Hi")
+
+    assert result == "Hello!"
+    mock_client.messages.create.assert_called_once()
