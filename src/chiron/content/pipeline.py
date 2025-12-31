@@ -1,9 +1,12 @@
 """Pipeline for generating lesson artifacts."""
 
+import json
 import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+
+from chiron.content.parser import ParsedLesson
 
 
 @dataclass
@@ -61,3 +64,56 @@ def slugify(text: str) -> str:
     # Remove leading/trailing hyphens
     slug = slug.strip("-")
     return slug
+
+
+def generate_lesson_artifacts(
+    parsed: ParsedLesson,
+    output_dir: Path,
+) -> LessonArtifacts:
+    """Generate all lesson artifacts from parsed content.
+
+    Args:
+        parsed: Parsed lesson content
+        output_dir: Directory to write artifacts
+
+    Returns:
+        LessonArtifacts with paths to all generated files
+    """
+    # Create output directory
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write script.txt
+    script_path = output_dir / "script.txt"
+    script_path.write_text(parsed.audio_script, encoding="utf-8")
+
+    # Write exercises.json
+    exercises_path = output_dir / "exercises.json"
+    exercises_path.write_text(
+        json.dumps(parsed.exercise_seeds, indent=2),
+        encoding="utf-8",
+    )
+
+    # Write lesson.md
+    markdown_path = output_dir / "lesson.md"
+    md_lines = [
+        f"# {parsed.title}",
+        "",
+        "## Learning Objectives",
+        "",
+    ]
+    for i, obj in enumerate(parsed.objectives, 1):
+        md_lines.append(f"{i}. {obj}")
+    md_lines.append("")
+
+    markdown_path.write_text("\n".join(md_lines), encoding="utf-8")
+
+    return LessonArtifacts(
+        output_dir=output_dir,
+        script_path=script_path,
+        audio_path=None,  # TTS not yet implemented
+        markdown_path=markdown_path,
+        pdf_path=None,  # Pandoc not yet implemented
+        diagram_paths=[],  # Diagrams not yet implemented
+        exercises_path=exercises_path,
+        srs_items_added=0,  # Database integration not yet done
+    )
