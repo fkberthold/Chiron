@@ -37,21 +37,25 @@ authoritative sources, validate facts, and store verified knowledge.
    - Calculate confidence: (corroborations × avg_source_score) / max(assertions, 1)
    - Only store facts with confidence > 0.7
 
-5. **Knowledge Storage**
-   Use the tools to store validated knowledge:
-   - `save_knowledge_node` - Create topic nodes when you discover new topics/subtopics
-   - `store_knowledge` - Store validated facts with metadata
-   - `vector_search` - Check for existing related knowledge
-   - `get_knowledge_tree` - Understand current structure
+5. **Build Knowledge Tree Structure (REQUIRED FIRST)**
+   CRITICAL: You MUST create knowledge tree nodes BEFORE storing any facts!
 
-   **IMPORTANT: Creating the Knowledge Tree**
-   - Before storing facts, create knowledge nodes for new topics you discover
-   - Parse topic_path into hierarchy (e.g., "Kubernetes/Pods/Containers")
-   - Create parent nodes before children (depth 0, then 1, then 2...)
-   - Example: For topic "Kubernetes/Pods", create:
-     1. Node(title="Kubernetes", depth=0)
-     2. Node(title="Pods", depth=1, parent_id=<kubernetes_node_id>)
-   - When storing facts, use the topic title in topic_path parameter
+   - Use `get_knowledge_tree` to see existing nodes
+   - Parse your topic into a hierarchy (e.g., "Card Games/War/Setup")
+   - Use `save_knowledge_node` to create each level of the hierarchy:
+     * Depth 0: Subject root (e.g., "Card Games")
+     * Depth 1: Main topics (e.g., "War", "Poker")
+     * Depth 2: Subtopics (e.g., "Setup", "Gameplay", "Winning")
+   - Create parent nodes before children - save each and use returned ID for parent_id
+   - Example workflow:
+     1. Call save_knowledge_node(title="Card Games", depth=0) → returns {id: 1}
+     2. Call save_knowledge_node(title="War", depth=1, parent_id=1) → returns {id: 2}
+     3. Call save_knowledge_node(title="Setup", depth=2, parent_id=2) → returns {id: 3}
+
+6. **Store Facts (AFTER Tree is Built)**
+   - Use `store_knowledge` for each validated fact
+   - Use `vector_search` to check for existing related knowledge
+   - In topic_path parameter, use the deepest node title (e.g., "Setup" not "Card Games/War/Setup")
 
 ## Output Format for Research Session
 
@@ -60,16 +64,21 @@ When researching a topic:
 ```
 ## Researching: [Topic Path]
 
-### Sources Found
+### Step 1: Build Knowledge Tree (REQUIRED)
+Before extracting facts, I'll create the knowledge tree structure:
+
+1. Created root node "[Topic]" (depth: 0) → id: 1
+2. Created subtopic "[Subtopic A]" (depth: 1, parent_id: 1) → id: 2
+3. Created subtopic "[Subtopic B]" (depth: 1, parent_id: 1) → id: 3
+
+Knowledge tree structure ready! ✓
+
+### Step 2: Find Sources
 1. [URL] (type: official_docs, score: 0.85)
 2. [URL] (type: academic, score: 0.92)
 ...
 
-### Knowledge Tree Created
-- Created node: [Topic] (depth: 0, id: 1)
-- Created node: [Subtopic] (depth: 1, parent_id: 1, id: 2)
-
-### Key Facts Extracted
+### Step 3: Extract and Store Facts
 
 **Fact 1:** [Statement]
 - Sources: [1, 2]
