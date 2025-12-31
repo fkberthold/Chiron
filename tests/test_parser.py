@@ -1,5 +1,7 @@
 """Tests for lesson content parser."""
 
+import json
+
 from chiron.content.parser import DiagramSpec, ParsedLesson, parse_lesson_content
 
 
@@ -213,3 +215,65 @@ A -> B
     assert parsed.diagrams[0].caption == ""
     assert "Exercise Seeds" not in parsed.diagrams[0].caption
     assert "##" not in parsed.diagrams[0].caption
+
+
+def test_parse_exercise_seeds():
+    """Test that exercise seeds JSON is extracted."""
+    seeds = [
+        {
+            "type": "scenario",
+            "prompt": "What happens when X?",
+            "key_concepts": ["concept1", "concept2"],
+            "expected_understanding": "User explains Y",
+        },
+        {
+            "type": "application",
+            "prompt": "Apply Z to situation",
+            "key_concepts": ["concept3"],
+            "expected_understanding": "User demonstrates Z",
+        },
+    ]
+    content = f"""# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+Content.
+
+## Exercise Seeds
+
+```json
+{json.dumps(seeds, indent=2)}
+```
+
+## SRS Items
+"""
+    parsed = parse_lesson_content(content)
+    assert len(parsed.exercise_seeds) == 2
+    assert parsed.exercise_seeds[0]["type"] == "scenario"
+    assert parsed.exercise_seeds[1]["prompt"] == "Apply Z to situation"
+
+
+def test_parse_exercise_seeds_invalid_json():
+    """Test that invalid JSON returns empty list with no crash."""
+    content = """# Lesson: Test
+
+## Learning Objectives
+1. Learn
+
+## Audio Script
+
+Content.
+
+## Exercise Seeds
+
+```json
+{invalid json here}
+```
+
+## SRS Items
+"""
+    parsed = parse_lesson_content(content)
+    assert parsed.exercise_seeds == []

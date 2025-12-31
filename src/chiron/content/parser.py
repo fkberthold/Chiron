@@ -1,7 +1,12 @@
 """Parser for LessonAgent structured output."""
 
+import json
+import logging
 import re
 from dataclasses import dataclass
+from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -21,7 +26,7 @@ class ParsedLesson:
     objectives: list[str]
     audio_script: str
     diagrams: list[DiagramSpec]
-    exercise_seeds: list[dict]
+    exercise_seeds: list[dict[str, Any]]
     srs_items: list[tuple[str, str]]
 
 
@@ -86,11 +91,25 @@ def parse_lesson_content(content: str) -> ParsedLesson:
             )
         )
 
+    # Extract exercise seeds from JSON code block
+    exercise_seeds: list[dict[str, Any]] = []
+    exercises_match = re.search(
+        r"## Exercise Seeds\s*\n\s*```json\s*\n(.*?)```",
+        content,
+        re.DOTALL,
+    )
+    if exercises_match:
+        try:
+            exercise_seeds = json.loads(exercises_match.group(1).strip())
+        except json.JSONDecodeError as e:
+            logger.warning("Failed to parse exercise seeds JSON: %s", e)
+            exercise_seeds = []
+
     return ParsedLesson(
         title=title,
         objectives=objectives,
         audio_script=audio_script,
         diagrams=diagrams,
-        exercise_seeds=[],
+        exercise_seeds=exercise_seeds,
         srs_items=[],
     )
