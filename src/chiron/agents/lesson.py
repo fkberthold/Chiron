@@ -25,7 +25,7 @@ learner's current state, knowledge gaps, and learning objectives.
    - Build on what the learner already knows
    - Introduce new concepts incrementally
    - Include analogies, examples, and real-world applications
-   - Add natural pauses for reflection
+   - Output as plain text paragraphs (no markdown formatting)
    - Summarize key points at the end
 
 3. **Generate Visual Aids**
@@ -36,33 +36,20 @@ learner's current state, knowledge gaps, and learning objectives.
      - Mind maps for concept relationships
      - State diagrams for transitions
    - Keep diagrams simple and focused on one concept each
+   - Include a brief caption after each diagram
 
-4. **Generate Reinforcement Exercises**
-   Create a variety of exercise types:
+4. **Generate Exercise Seeds**
+   - Create prompts for interactive exercises (not full questions)
+   - Include metadata for adaptive tutoring
+   - Output as JSON array
 
-   **Multiple Choice Questions**
-   - 4-5 answer options with one correct
-   - Plausible distractors based on common misconceptions
-   - Clear, unambiguous correct answers
-
-   **Fill-in-the-Blank**
-   - Test key terminology and concepts
-   - Provide enough context for recall
-   - Accept reasonable variations
-
-   **Scenario Questions**
-   - Present realistic situations requiring application
-   - Test understanding, not memorization
-   - Include reasoning in the expected answer
-
-   **Open-Ended Questions**
-   - Encourage deeper exploration
-   - Allow for creative responses
-   - Guide toward key insights
+5. **Generate SRS Items**
+   - Create flashcard-style items for spaced repetition
+   - Use "front | back" format
 
 ## Output Format
 
-When generating a lesson:
+You MUST follow this exact format:
 
 ```
 # Lesson: [Topic Title]
@@ -70,70 +57,56 @@ When generating a lesson:
 ## Learning Objectives
 1. [Objective 1]
 2. [Objective 2]
-...
+3. [Objective 3]
 
 ## Audio Script
 
-[Begin with a warm greeting and overview]
-
-[Main content with clear sections]
-
-[Summary and preview of next lesson]
-
----
+[Write conversational paragraphs here. No markdown formatting inside
+this section - just plain text with paragraph breaks. This will be
+converted to audio via text-to-speech.]
 
 ## Visual Aids
 
-### Diagram 1: [Title]
+### Diagram 1: [Descriptive Title]
+
 ```plantuml
 [PlantUML code]
 ```
 
-### Diagram 2: [Title]
+[Brief caption explaining what the diagram shows]
+
+### Diagram 2: [Descriptive Title]
+
 ```plantuml
 [PlantUML code]
 ```
 
----
+[Brief caption explaining what the diagram shows]
 
-## Reinforcement Exercises
+## Exercise Seeds
 
-### Multiple Choice
+```json
+[
+  {
+    "type": "scenario",
+    "prompt": "Description of a scenario the learner must respond to",
+    "key_concepts": ["concept1", "concept2"],
+    "expected_understanding": "What a good response demonstrates"
+  },
+  {
+    "type": "application",
+    "prompt": "Ask learner to apply knowledge to a situation",
+    "key_concepts": ["concept3"],
+    "expected_understanding": "What correct application looks like"
+  }
+]
+```
 
-**Q1:** [Question]
-A) [Option]
-B) [Option]
-C) [Option]
-D) [Option]
+## SRS Items
 
-*Correct: [Letter]*
-*Explanation: [Why]*
-
-### Fill-in-the-Blank
-
-**Q2:** [Statement with _____ blanks]
-
-*Answer: [Expected answer]*
-
-### Scenario
-
-**Q3:** [Scenario description]
-
-What should you do?
-
-*Expected approach: [Description]*
-
-### Open-Ended
-
-**Q4:** [Thoughtful question]
-
-*Key points to consider: [List]*
-
----
-
-## SRS Items Generated
-- [Flashcard front] | [Flashcard back]
-- [Flashcard front] | [Flashcard back]
+- Question or prompt | Answer or explanation
+- Another front | Another back
+- Concept to recall | Definition or elaboration
 ```
 
 ## Guidelines
@@ -142,8 +115,10 @@ What should you do?
 - Reference prior knowledge to build connections
 - Focus on understanding over memorization
 - Include practical applications relevant to their learning goal
-- Generate 8-12 SRS items per lesson for spaced repetition
+- Generate 8-12 SRS items per lesson
+- Generate 3-5 exercise seeds
 - Keep the audio script conversational and engaging
+- Audio script should be pure text, no markdown formatting
 """
 
 
@@ -203,7 +178,7 @@ Current Assessment Summary:
 Please generate:
 1. An engaging audio script (~15 minutes)
 2. Visual aids as PlantUML diagrams
-3. Reinforcement exercises (multiple choice, fill-in-blank, scenario, open-ended)
+3. Exercise seeds as JSON (for adaptive tutoring)
 4. SRS flashcard items for spaced repetition"""
 
         return self.run(prompt)
