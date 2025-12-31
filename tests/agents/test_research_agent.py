@@ -19,7 +19,9 @@ def test_research_agent_initialization() -> None:
 def test_research_agent_initialization_with_tools() -> None:
     """ResearchAgent should accept tools and executor."""
     tools = [{"name": "test", "description": "Test", "input_schema": {"type": "object"}}]
-    executor = lambda name, args: {"result": "ok"}
+
+    def executor(name: str, args: dict) -> dict:
+        return {"result": "ok"}
 
     agent = ResearchAgent(tools=tools, tool_executor=executor)
 

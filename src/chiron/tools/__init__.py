@@ -1,7 +1,8 @@
 """Tool functions for Chiron agents."""
 
 import inspect
-from typing import Any, Callable, get_type_hints
+from collections.abc import Callable
+from typing import Any, get_type_hints
 
 from chiron.tools.knowledge import store_knowledge, vector_search
 from chiron.tools.knowledge_nodes import (
@@ -89,13 +90,18 @@ def _get_tool_definition(name: str, func: Callable[..., Any]) -> dict[str, Any]:
 
         # Handle Optional types
         origin = getattr(param_type, "__origin__", None)
-        if origin is type(None) or (hasattr(param_type, "__args__") and type(None) in getattr(param_type, "__args__", ())):
+        has_args = hasattr(param_type, "__args__")
+        args_tuple = getattr(param_type, "__args__", ())
+        is_optional = origin is type(None) or (has_args and type(None) in args_tuple)
+        if is_optional:
             # It's Optional, extract the inner type
             args = getattr(param_type, "__args__", ())
             param_type = next((a for a in args if a is not type(None)), str)
         else:
             # Required parameter (no default or keyword-only without default)
-            if param.default is inspect.Parameter.empty and param.kind != inspect.Parameter.VAR_KEYWORD:
+            is_empty = param.default is inspect.Parameter.empty
+            is_var_keyword = param.kind == inspect.Parameter.VAR_KEYWORD
+            if is_empty and not is_var_keyword:
                 required.append(param_name)
 
         properties[param_name] = _python_type_to_json_schema(param_type)

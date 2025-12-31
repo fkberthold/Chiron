@@ -1,8 +1,9 @@
 """Workflow orchestrator with state machine for Chiron learning sessions."""
 
+from collections.abc import Callable
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from chiron.agents import (
     AssessmentAgent,

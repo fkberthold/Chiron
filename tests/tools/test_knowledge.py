@@ -1,9 +1,6 @@
 """Tests for knowledge tools."""
 
-from datetime import datetime
 from unittest.mock import MagicMock
-
-import pytest
 
 from chiron.tools.knowledge import store_knowledge, vector_search
 

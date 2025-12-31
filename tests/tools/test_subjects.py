@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from chiron.tools.subjects import get_active_subject, set_active_subject, list_subjects
+from chiron.tools.subjects import get_active_subject, list_subjects, set_active_subject
 
 
 def test_get_active_subject_returns_setting() -> None:

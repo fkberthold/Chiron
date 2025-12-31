@@ -1,6 +1,7 @@
 """CurriculumAgent for designing learning coverage maps."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from chiron.agents.base import AgentConfig, BaseAgent
 

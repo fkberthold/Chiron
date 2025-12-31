@@ -1,6 +1,5 @@
 """Tests for base agent class."""
 
-import json
 from unittest.mock import MagicMock
 
 from chiron.agents.base import AgentConfig, BaseAgent
@@ -172,7 +171,13 @@ def test_base_agent_executes_tools_and_loops() -> None:
     tool_executor.return_value = {"status": "stored", "topic": "test"}
 
     # Create agent with tools
-    tools = [{"name": "store_knowledge", "description": "Store", "input_schema": {"type": "object", "properties": {}}}]
+    tools = [
+        {
+            "name": "store_knowledge",
+            "description": "Store",
+            "input_schema": {"type": "object", "properties": {}},
+        }
+    ]
     agent = BaseAgent(config, tools=tools, tool_executor=tool_executor)
 
     # Mock client
