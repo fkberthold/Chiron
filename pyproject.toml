@@ -33,6 +33,10 @@ tts = [
 piper = [
     "piper-tts>=1.2.0",
 ]
+fish = [
+    "fish-speech>=1.4.0",
+    "pyyaml>=6.0",
+]
 
 [project.scripts]
 chiron = "chiron.cli:cli"
@@ -55,3 +59,6 @@ select = ["E", "F", "I", "N", "W", "UP"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
+
+[tool.uv.sources]
+fish-speech = { git = "https://github.com/fishaudio/fish-speech", tag = "v1.5.0" }
