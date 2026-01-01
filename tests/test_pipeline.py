@@ -65,6 +65,7 @@ def test_diagram_result_rendered_property(tmp_path):
 def test_check_available_tools_returns_dict():
     """Test that check_available_tools returns expected keys."""
     tools = check_available_tools()
+    assert "fish" in tools
     assert "coqui" in tools
     assert "piper" in tools
     assert "plantuml" in tools
@@ -72,6 +73,14 @@ def test_check_available_tools_returns_dict():
     assert "weasyprint" in tools
     # All values should be booleans
     assert all(isinstance(v, bool) for v in tools.values())
+
+
+def test_check_available_tools_detects_fish() -> None:
+    """Should detect Fish Speech availability."""
+    with patch("chiron.content.pipeline._try_import", return_value=True):
+        tools = check_available_tools()
+
+    assert "fish" in tools
 
 
 def test_slugify_simple():

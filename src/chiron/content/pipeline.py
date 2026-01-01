@@ -70,6 +70,7 @@ def check_available_tools() -> dict[str, bool]:
         Dictionary mapping tool names to availability booleans.
     """
     return {
+        "fish": _try_import("fish_speech"),
         "coqui": _try_import("TTS"),
         "piper": _try_import("piper"),
         "plantuml": shutil.which("plantuml") is not None,
