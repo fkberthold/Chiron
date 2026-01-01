@@ -327,6 +327,36 @@ def _stitch_wav_files(input_files: list[Path], output_path: Path) -> None:
                 output_wav.writeframes(input_wav.readframes(input_wav.getnframes()))
 
 
+def generate_audio_fish(
+    script: str,
+    output_path: Path,
+    voice_config: VoiceConfig | None = None,
+    voice_dir: Path | None = None,
+) -> Path | None:
+    """Generate audio using Fish Speech.
+
+    Fish Speech provides high-quality neural TTS with voice cloning.
+    Segments text conservatively to avoid GPU OOM.
+
+    Args:
+        script: Text to convert to speech.
+        output_path: Where to save the audio file.
+        voice_config: Optional voice configuration for cloning.
+        voice_dir: Directory containing reference audio (if cloning).
+
+    Returns:
+        Path to generated WAV file, or None if generation failed.
+    """
+    try:
+        import fish_speech  # type: ignore[import-untyped]  # noqa: F401
+    except ImportError:
+        logger.warning("Fish Speech not installed. Install with: uv sync --extra fish")
+        return None
+
+    # TODO: Implement generation
+    return None
+
+
 def generate_audio_piper(
     script: str,
     output_path: Path,

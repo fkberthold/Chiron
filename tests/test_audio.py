@@ -11,6 +11,7 @@ from chiron.content.audio import (
     extract_audio_script,
     generate_audio,
     generate_audio_coqui,
+    generate_audio_fish,
     load_voice_config,
     segment_for_fish,
     segment_script,
@@ -223,3 +224,14 @@ def test_audio_config_fish_engine() -> None:
     """AudioConfig should accept fish as engine."""
     config = AudioConfig(engine="fish")
     assert config.engine == "fish"
+
+
+def test_generate_audio_fish_not_installed(tmp_path: Path) -> None:
+    """Should return None when Fish Speech is not installed."""
+    script = "Test audio content."
+    output_path = tmp_path / "audio.wav"
+
+    with patch.dict("sys.modules", {"fish_speech": None}):
+        result = generate_audio_fish(script, output_path)
+
+    assert result is None
