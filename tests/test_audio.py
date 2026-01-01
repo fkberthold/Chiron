@@ -3,12 +3,15 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from chiron.content.audio import (
     AudioConfig,
     VoiceConfig,
     extract_audio_script,
     generate_audio,
     generate_audio_coqui,
+    load_voice_config,
     segment_script,
 )
 
@@ -134,3 +137,14 @@ def test_generate_audio_selects_coqui_engine(tmp_path: Path) -> None:
         result = generate_audio(script, output_path, config)
 
     assert result is None  # Falls through when coqui not available
+
+
+def test_load_voice_config_not_found(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Should return default config when voice directory doesn't exist."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    config, voice_dir = load_voice_config("default")
+
+    assert config.reference_audio is None
+    assert config.chunk_length == 396
+    assert voice_dir is None

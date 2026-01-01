@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+import yaml
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
@@ -27,6 +28,27 @@ class VoiceConfig(BaseModel):
     reference_text: str | None = None
     chunk_length: int = 396
     top_p: float = 0.95
+
+
+def load_voice_config(voice_name: str = "default") -> tuple[VoiceConfig, Path | None]:
+    """Load voice configuration from ~/.chiron/voices/{voice_name}/.
+
+    Args:
+        voice_name: Name of the voice directory to load.
+
+    Returns:
+        Tuple of (VoiceConfig, voice_dir_path or None if not found).
+    """
+    voice_dir = Path.home() / ".chiron" / "voices" / voice_name
+    config_path = voice_dir / "voice.yaml"
+
+    if not config_path.exists():
+        return VoiceConfig(), None
+
+    with open(config_path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+
+    return VoiceConfig(**data), voice_dir
 
 
 @dataclass
