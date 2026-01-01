@@ -27,6 +27,12 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.8.0",
 ]
+tts = [
+    "TTS>=0.22.0",
+]
+piper = [
+    "piper-tts>=1.2.0",
+]
 
 [project.scripts]
 chiron = "chiron.cli:cli"
