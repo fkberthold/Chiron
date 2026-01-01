@@ -12,6 +12,7 @@ from chiron.content.audio import (
     generate_audio,
     generate_audio_coqui,
     load_voice_config,
+    segment_for_fish,
     segment_script,
 )
 
@@ -173,3 +174,46 @@ top_p: 0.9
     assert config.chunk_length == 200
     assert config.top_p == 0.9
     assert returned_dir == voice_dir
+
+
+# --- segment_for_fish tests ---
+
+
+def test_segment_for_fish_combines_short_sentences() -> None:
+    """Should combine short sentences under threshold."""
+    script = "Yes. I agree. This is important."
+
+    segments = segment_for_fish(script, max_chars=300, min_chars=50)
+
+    assert len(segments) == 1
+    assert segments[0] == "Yes. I agree. This is important."
+
+
+def test_segment_for_fish_splits_long_sentences() -> None:
+    """Should keep sentences separate when they exceed threshold."""
+    script = (
+        "This is a longer sentence about the topic. "
+        "Here is another one that is also quite long."
+    )
+
+    segments = segment_for_fish(script, max_chars=50, min_chars=10)
+
+    assert len(segments) == 2
+    assert "This is a longer sentence" in segments[0]
+    assert "Here is another one" in segments[1]
+
+
+def test_segment_for_fish_handles_empty() -> None:
+    """Should return empty list for empty input."""
+    segments = segment_for_fish("")
+    assert segments == []
+
+
+def test_segment_for_fish_handles_no_punctuation() -> None:
+    """Should treat text without sentence boundaries as one chunk."""
+    script = "This is text without any sentence ending punctuation"
+
+    segments = segment_for_fish(script)
+
+    assert len(segments) == 1
+    assert segments[0] == script

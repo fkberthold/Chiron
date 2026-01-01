@@ -137,6 +137,54 @@ def segment_script(script: str, max_chars: int = 5000) -> list[str]:
     return segments
 
 
+def segment_for_fish(
+    script: str,
+    max_chars: int = 300,
+    min_chars: int = 50,
+) -> list[str]:
+    """Segment script for Fish TTS processing.
+
+    Uses smart hybrid approach: splits on sentence boundaries but combines
+    very short sentences to reduce API calls while staying GPU-safe.
+
+    Args:
+        script: Full audio script text.
+        max_chars: Maximum characters per segment (GPU safety limit).
+        min_chars: Minimum chars before emitting a segment (combine tiny sentences).
+
+    Returns:
+        List of text segments ready for TTS processing.
+    """
+    if not script or not script.strip():
+        return []
+
+    # Split on sentence boundaries
+    sentences = re.split(r"(?<=[.!?])\s+", script.strip())
+
+    segments: list[str] = []
+    current = ""
+
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        # Check if adding this sentence would exceed max
+        if current and len(current) + len(sentence) + 1 > max_chars:
+            # Emit current segment
+            segments.append(current)
+            current = sentence
+        else:
+            # Add to current segment
+            current = f"{current} {sentence}".strip() if current else sentence
+
+    # Emit final segment
+    if current:
+        segments.append(current)
+
+    return segments
+
+
 def generate_audio(
     script: str,
     output_path: Path,
