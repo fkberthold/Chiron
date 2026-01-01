@@ -54,7 +54,7 @@ More content here."""
 def test_audio_config_defaults() -> None:
     """AudioConfig should have sensible defaults."""
     config = AudioConfig()
-    assert config.engine in ("coqui", "piper", "export")
+    assert config.engine in ("fish", "coqui", "piper", "export")
     assert config.sample_rate == 22050
     assert config.voice_model == "tts_models/en/ljspeech/tacotron2-DDC"
 
@@ -217,3 +217,9 @@ def test_segment_for_fish_handles_no_punctuation() -> None:
 
     assert len(segments) == 1
     assert segments[0] == script
+
+
+def test_audio_config_fish_engine() -> None:
+    """AudioConfig should accept fish as engine."""
+    config = AudioConfig(engine="fish")
+    assert config.engine == "fish"

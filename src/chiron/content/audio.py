@@ -1,9 +1,10 @@
 """Audio generation for Chiron lessons.
 
 Audio rendering priority (per design doc):
-1. Coqui TTS with GPU acceleration (high quality)
-2. Piper TTS (fallback, faster but more robotic)
-3. Export script for external TTS like Speechify (last resort)
+1. Fish TTS with GPU acceleration (highest quality, voice cloning)
+2. Coqui TTS with GPU acceleration (high quality)
+3. Piper TTS (fallback, faster but more robotic)
+4. Export script for external TTS like Speechify (last resort)
 """
 
 import logging
@@ -55,7 +56,7 @@ def load_voice_config(voice_name: str = "default") -> tuple[VoiceConfig, Path | 
 class AudioConfig:
     """Configuration for audio generation."""
 
-    engine: Literal["coqui", "piper", "export"] = "export"
+    engine: Literal["fish", "coqui", "piper", "export"] = "export"
     sample_rate: int = 22050
     voice_model: str = "tts_models/en/ljspeech/tacotron2-DDC"  # Default Coqui model
 
