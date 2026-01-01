@@ -209,6 +209,10 @@ def generate_audio(
         script_path.write_text(script, encoding="utf-8")
         return script_path
 
+    if config.engine == "fish":
+        voice_config, voice_dir = load_voice_config()
+        return generate_audio_fish(script, output_path, voice_config, voice_dir)
+
     if config.engine == "coqui":
         return generate_audio_coqui(script, output_path, config)
 

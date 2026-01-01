@@ -235,3 +235,18 @@ def test_generate_audio_fish_not_installed(tmp_path: Path) -> None:
         result = generate_audio_fish(script, output_path)
 
     assert result is None
+
+
+def test_generate_audio_calls_fish(tmp_path: Path) -> None:
+    """Should call generate_audio_fish when engine is fish."""
+    script = "Test content."
+    output_path = tmp_path / "audio"
+    config = AudioConfig(engine="fish")
+
+    with patch(
+        "chiron.content.audio.generate_audio_fish", return_value=tmp_path / "audio.wav"
+    ) as mock_fish:
+        result = generate_audio(script, output_path, config)
+
+    mock_fish.assert_called_once()
+    assert result == tmp_path / "audio.wav"
