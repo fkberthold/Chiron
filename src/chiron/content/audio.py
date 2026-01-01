@@ -12,10 +12,21 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+from pydantic import BaseModel
+
 if TYPE_CHECKING:
     pass  # TTS types would go here if we had stubs
 
 logger = logging.getLogger(__name__)
+
+
+class VoiceConfig(BaseModel):
+    """Voice configuration for Fish TTS."""
+
+    reference_audio: str | None = None
+    reference_text: str | None = None
+    chunk_length: int = 396
+    top_p: float = 0.95
 
 
 @dataclass

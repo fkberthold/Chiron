@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from chiron.content.audio import (
     AudioConfig,
+    VoiceConfig,
     extract_audio_script,
     generate_audio,
     generate_audio_coqui,
@@ -52,6 +53,15 @@ def test_audio_config_defaults() -> None:
     assert config.engine in ("coqui", "piper", "export")
     assert config.sample_rate == 22050
     assert config.voice_model == "tts_models/en/ljspeech/tacotron2-DDC"
+
+
+def test_voice_config_defaults() -> None:
+    """VoiceConfig should have sensible defaults for Fish TTS."""
+    config = VoiceConfig()
+    assert config.reference_audio is None
+    assert config.reference_text is None
+    assert config.chunk_length == 396
+    assert config.top_p == 0.95
 
 
 def test_generate_audio_export_mode(tmp_path: Path) -> None:
