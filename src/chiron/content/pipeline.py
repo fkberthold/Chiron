@@ -223,7 +223,10 @@ def generate_lesson_artifacts(
     # Auto-select TTS engine based on availability if using default export mode
     if audio_config.engine == "export":
         # Check if a TTS engine is available and upgrade if so
-        if tools.get("coqui"):
+        if tools.get("fish"):
+            audio_config = AudioConfig(engine="fish")
+            logger.info("Using Fish TTS for audio generation")
+        elif tools.get("coqui"):
             audio_config = AudioConfig(engine="coqui")
             logger.info("Using Coqui TTS for audio generation")
         elif tools.get("piper"):

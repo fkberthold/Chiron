@@ -415,3 +415,34 @@ def test_generate_lesson_artifacts_uses_coqui_when_available(tmp_path):
             assert config.engine == "coqui"
 
     assert artifacts.audio_path == mock_audio_path
+
+
+def test_pipeline_selects_fish_engine(tmp_path: Path) -> None:
+    """Pipeline should select Fish as TTS engine when available."""
+
+    parsed = ParsedLesson(
+        title="Test Lesson",
+        objectives=["Learn stuff"],
+        audio_script="Hello world.",
+        diagrams=[],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    with patch("chiron.content.pipeline.check_available_tools", return_value={
+        "fish": True,
+        "coqui": True,
+        "piper": False,
+        "plantuml": False,
+        "pandoc": False,
+        "weasyprint": False,
+    }):
+        with patch("chiron.content.pipeline.generate_audio") as mock_gen:
+            mock_gen.return_value = tmp_path / "audio.wav"
+            generate_lesson_artifacts(parsed, tmp_path)
+
+            # Verify generate_audio was called
+            mock_gen.assert_called_once()
+            # Get the AudioConfig that was passed
+            _, _, config = mock_gen.call_args[0]
+            assert config.engine == "fish"
