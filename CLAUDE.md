@@ -108,6 +108,14 @@ Before committing, ensure:
 2. `uv run ruff check src/ tests/` - No linting errors
 3. `uv run mypy src/chiron/` - No type errors
 
+## Conventions
+
+### Configuration Format
+
+**Standardize on YAML** for configuration files unless there's a compelling technical reason otherwise. This is a project-wide convention for consistency and readability.
+
+Tech debt: Some existing config uses JSON or TOML - migrate to YAML when touching those files.
+
 ## Key Technologies
 
 - **Python 3.11+** via devbox
