@@ -352,12 +352,27 @@ def generate_audio_fish(
         Path to generated WAV file, or None if generation failed.
     """
     try:
-        import fish_speech  # type: ignore[import-untyped]  # noqa: F401
+        import fish_speech  # noqa: F401  # type: ignore[import-not-found]
     except ImportError:
         logger.warning("Fish Speech not installed. Install with: uv sync --extra fish")
         return None
 
-    # TODO: Implement generation
+    voice_config = voice_config or VoiceConfig()
+    output_path = output_path.with_suffix(".wav")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Segment for GPU safety
+    segments = segment_for_fish(script)
+    if not segments:
+        logger.warning("No segments to generate audio for")
+        return None
+
+    logger.info("Generating Fish TTS audio: %d segments", len(segments))
+
+    # TODO: Implement actual Fish Speech generation
+    # This requires investigating the fish_speech library API
+    # For now, fall through to return None
+    logger.warning("Fish Speech generation not yet implemented")
     return None
 
 
