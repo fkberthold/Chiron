@@ -8,10 +8,26 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from chiron.content.audio import AudioConfig, generate_audio
 from chiron.content.diagrams import render_diagram, save_diagram
 from chiron.content.parser import ParsedLesson
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DiagramResult:
+    """Result of diagram processing."""
+
+    puml_path: Path
+    png_path: Path | None  # None if rendering failed
+    title: str
+    caption: str
+
+    @property
+    def rendered(self) -> bool:
+        """Check if the diagram was successfully rendered to PNG."""
+        return self.png_path is not None and self.png_path.exists()
 
 
 @dataclass
@@ -23,9 +39,19 @@ class LessonArtifacts:
     audio_path: Path | None
     markdown_path: Path
     pdf_path: Path | None
-    diagram_paths: list[Path]
+    diagrams: list[DiagramResult]
     exercises_path: Path
     srs_items_added: int
+
+    @property
+    def diagrams_rendered(self) -> int:
+        """Count of successfully rendered diagrams."""
+        return sum(1 for d in self.diagrams if d.rendered)
+
+    @property
+    def diagrams_total(self) -> int:
+        """Total number of diagrams."""
+        return len(self.diagrams)
 
 
 def _try_import(module_name: str) -> bool:
@@ -48,6 +74,7 @@ def check_available_tools() -> dict[str, bool]:
         "piper": _try_import("piper"),
         "plantuml": shutil.which("plantuml") is not None,
         "pandoc": shutil.which("pandoc") is not None,
+        "weasyprint": shutil.which("weasyprint") is not None,
     }
 
 
@@ -74,12 +101,15 @@ def slugify(text: str) -> str:
 def generate_lesson_artifacts(
     parsed: ParsedLesson,
     output_dir: Path,
+    audio_config: AudioConfig | None = None,
 ) -> LessonArtifacts:
     """Generate all lesson artifacts from parsed content.
 
     Args:
         parsed: Parsed lesson content
         output_dir: Directory to write artifacts
+        audio_config: Optional audio generation config. If None, uses default
+            which exports script.txt for external TTS.
 
     Returns:
         LessonArtifacts with paths to all generated files
@@ -99,21 +129,25 @@ def generate_lesson_artifacts(
     )
 
     # Process diagrams
-    diagram_paths: list[Path] = []
-    diagram_refs: list[tuple[str, str, str]] = []  # (title, filename, caption)
+    diagram_results: list[DiagramResult] = []
 
     if parsed.diagrams:
         diagrams_dir = output_dir / "diagrams"
         for diagram in parsed.diagrams:
             slug = slugify(diagram.title)
             puml_path = save_diagram(diagram.puml_code, diagrams_dir, slug)
-            diagram_paths.append(puml_path)
 
             # Try to render to PNG
-            render_diagram(puml_path, "png")
+            png_path = render_diagram(puml_path, "png")
 
-            # Store reference for markdown (use .png extension for image ref)
-            diagram_refs.append((diagram.title, f"{slug}.png", diagram.caption))
+            diagram_results.append(
+                DiagramResult(
+                    puml_path=puml_path,
+                    png_path=png_path,
+                    title=diagram.title,
+                    caption=diagram.caption,
+                )
+            )
 
     # Write lesson.md
     markdown_path = output_dir / "lesson.md"
@@ -127,31 +161,50 @@ def generate_lesson_artifacts(
         md_lines.append(f"{i}. {obj}")
     md_lines.append("")
 
-    # Add Visual Aids section if there are diagrams
-    if diagram_refs:
+    # Add Visual Aids section - only include successfully rendered diagrams
+    rendered_diagrams = [d for d in diagram_results if d.rendered]
+    if rendered_diagrams:
         md_lines.append("## Visual Aids")
         md_lines.append("")
-        for title, filename, caption in diagram_refs:
-            md_lines.append(f"### {title}")
+        for diag in rendered_diagrams:
+            md_lines.append(f"### {diag.title}")
             md_lines.append("")
-            md_lines.append(f"![{title}](diagrams/{filename})")
+            # png_path is guaranteed non-None when rendered is True
+            assert diag.png_path is not None
+            md_lines.append(f"![{diag.title}](diagrams/{diag.png_path.name})")
             md_lines.append("")
-            if caption:
-                md_lines.append(caption)
+            if diag.caption:
+                md_lines.append(diag.caption)
                 md_lines.append("")
+
+    # Log warning for failed diagrams
+    failed_diagrams = [d for d in diagram_results if not d.rendered]
+    for diag in failed_diagrams:
+        logger.warning(
+            "Diagram '%s' not included in markdown (rendering failed): %s",
+            diag.title,
+            diag.puml_path,
+        )
 
     markdown_path.write_text("\n".join(md_lines), encoding="utf-8")
 
-    # Generate PDF via pandoc if available
+    # Generate PDF via pandoc with weasyprint engine (no LaTeX needed)
     pdf_path: Path | None = None
     tools = check_available_tools()
-    if tools.get("pandoc"):
+    if tools.get("pandoc") and tools.get("weasyprint"):
         pdf_path = output_dir / "lesson.pdf"
         try:
             result = subprocess.run(
-                ["pandoc", str(markdown_path), "-o", str(pdf_path)],
+                [
+                    "pandoc",
+                    str(markdown_path),
+                    "-o",
+                    str(pdf_path),
+                    "--pdf-engine=weasyprint",
+                ],
                 capture_output=True,
                 text=True,
+                cwd=output_dir,  # Run from output dir so relative image paths work
             )
             if result.returncode != 0:
                 logger.warning("Pandoc failed: %s", result.stderr)
@@ -159,14 +212,40 @@ def generate_lesson_artifacts(
         except Exception as e:
             logger.warning("Pandoc error: %s", e)
             pdf_path = None
+    elif tools.get("pandoc") and not tools.get("weasyprint"):
+        logger.info("PDF generation skipped: weasyprint not available")
+
+    # Generate audio from script
+    audio_path: Path | None = None
+    audio_config = audio_config or AudioConfig()
+
+    # Auto-select TTS engine based on availability if using default export mode
+    if audio_config.engine == "export":
+        # Check if a TTS engine is available and upgrade if so
+        if tools.get("coqui"):
+            audio_config = AudioConfig(engine="coqui")
+            logger.info("Using Coqui TTS for audio generation")
+        elif tools.get("piper"):
+            audio_config = AudioConfig(engine="piper")
+            logger.info("Using Piper TTS for audio generation")
+        else:
+            logger.info("No TTS engine available, exporting script.txt for external TTS")
+
+    audio_output = output_dir / "audio"
+    audio_path = generate_audio(parsed.audio_script, audio_output, audio_config)
+
+    if audio_path and audio_config.engine != "export":
+        logger.info("Audio generated: %s", audio_path)
+    elif audio_path:
+        logger.info("Script exported for external TTS: %s", audio_path)
 
     return LessonArtifacts(
         output_dir=output_dir,
         script_path=script_path,
-        audio_path=None,  # TTS not yet implemented
+        audio_path=audio_path,
         markdown_path=markdown_path,
         pdf_path=pdf_path,
-        diagram_paths=diagram_paths,
+        diagrams=diagram_results,
         exercises_path=exercises_path,
         srs_items_added=0,  # Database integration not yet done
     )

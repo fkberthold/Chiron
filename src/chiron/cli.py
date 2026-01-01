@@ -270,9 +270,15 @@ def lesson() -> None:
 
                     # Audio
                     if artifacts.audio_path:
-                        tree.add("[green]✓[/green] audio.mp3")
+                        audio_name = artifacts.audio_path.name
+                        if artifacts.audio_path.suffix == ".txt":
+                            tree.add(
+                                f"[yellow]○[/yellow] {audio_name} (script for external TTS)"
+                            )
+                        else:
+                            tree.add(f"[green]✓[/green] {audio_name}")
                     else:
-                        tree.add("[yellow]○[/yellow] audio.mp3 (TTS not available)")
+                        tree.add("[yellow]○[/yellow] audio (TTS not available)")
 
                     # Markdown
                     tree.add("[green]✓[/green] lesson.md")
@@ -281,14 +287,30 @@ def lesson() -> None:
                     if artifacts.pdf_path:
                         tree.add("[green]✓[/green] lesson.pdf")
                     else:
-                        tree.add("[yellow]○[/yellow] lesson.pdf (pandoc not available)")
+                        tree.add(
+                            "[yellow]○[/yellow] lesson.pdf (pandoc/weasyprint not available)"
+                        )
 
                     # Diagrams
-                    if artifacts.diagram_paths:
-                        diagrams_branch = tree.add("diagrams/")
-                        for p in artifacts.diagram_paths:
-                            if p.suffix == ".png":
-                                diagrams_branch.add(f"[green]✓[/green] {p.name}")
+                    if artifacts.diagrams:
+                        rendered = artifacts.diagrams_rendered
+                        total = artifacts.diagrams_total
+                        if rendered == total:
+                            status = f"[green]✓[/green] ({total} rendered)"
+                        elif rendered > 0:
+                            status = f"[yellow]△[/yellow] ({rendered}/{total} rendered)"
+                        else:
+                            status = f"[red]✗[/red] (0/{total} rendered)"
+                        diagrams_branch = tree.add(f"diagrams/ {status}")
+                        for d in artifacts.diagrams:
+                            if d.rendered and d.png_path is not None:
+                                diagrams_branch.add(
+                                    f"[green]✓[/green] {d.png_path.name}"
+                                )
+                            else:
+                                diagrams_branch.add(
+                                    f"[red]✗[/red] {d.puml_path.name} (render failed)"
+                                )
                     else:
                         tree.add("[dim]○[/dim] diagrams/ (none generated)")
 

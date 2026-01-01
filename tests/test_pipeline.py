@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from chiron.content.parser import DiagramSpec, ParsedLesson
 from chiron.content.pipeline import (
+    DiagramResult,
     LessonArtifacts,
     check_available_tools,
     generate_lesson_artifacts,
@@ -21,13 +22,44 @@ def test_lesson_artifacts_dataclass():
         audio_path=None,
         markdown_path=Path("/tmp/lesson/lesson.md"),
         pdf_path=None,
-        diagram_paths=[],
+        diagrams=[],
         exercises_path=Path("/tmp/lesson/exercises.json"),
         srs_items_added=5,
     )
     assert artifacts.output_dir == Path("/tmp/lesson")
     assert artifacts.audio_path is None
     assert artifacts.srs_items_added == 5
+    assert artifacts.diagrams_total == 0
+    assert artifacts.diagrams_rendered == 0
+
+
+def test_diagram_result_rendered_property(tmp_path):
+    """Test that DiagramResult.rendered checks for file existence."""
+    puml_path = tmp_path / "test.puml"
+    puml_path.write_text("@startuml\n@enduml")
+    png_path = tmp_path / "test.png"
+
+    # Not rendered when PNG doesn't exist
+    result = DiagramResult(
+        puml_path=puml_path,
+        png_path=png_path,
+        title="Test",
+        caption="Caption",
+    )
+    assert not result.rendered
+
+    # Create the PNG file
+    png_path.write_bytes(b"fake png")
+    assert result.rendered
+
+    # Not rendered when png_path is None
+    result_none = DiagramResult(
+        puml_path=puml_path,
+        png_path=None,
+        title="Test",
+        caption="Caption",
+    )
+    assert not result_none.rendered
 
 
 def test_check_available_tools_returns_dict():
@@ -37,6 +69,7 @@ def test_check_available_tools_returns_dict():
     assert "piper" in tools
     assert "plantuml" in tools
     assert "pandoc" in tools
+    assert "weasyprint" in tools
     # All values should be booleans
     assert all(isinstance(v, bool) for v in tools.values())
 
@@ -166,7 +199,7 @@ def test_generate_lesson_artifacts_saves_diagrams(tmp_path):
 
 
 def test_generate_lesson_artifacts_includes_diagrams_in_markdown(tmp_path):
-    """Test that markdown includes diagram image references."""
+    """Test that markdown includes diagram image references when rendered."""
     parsed = ParsedLesson(
         title="Test",
         objectives=["Learn"],
@@ -182,16 +215,54 @@ def test_generate_lesson_artifacts_includes_diagrams_in_markdown(tmp_path):
         srs_items=[],
     )
 
-    artifacts = generate_lesson_artifacts(parsed, tmp_path)
+    # Mock successful diagram rendering
+    def mock_render(puml_path, fmt):
+        png_path = puml_path.with_suffix(".png")
+        png_path.write_bytes(b"fake png")
+        return png_path
+
+    with patch("chiron.content.pipeline.render_diagram", side_effect=mock_render):
+        artifacts = generate_lesson_artifacts(parsed, tmp_path)
 
     md_content = artifacts.markdown_path.read_text()
     assert "![Flow Chart]" in md_content
     assert "diagrams/flow-chart.png" in md_content
     assert "Shows the flow" in md_content
+    assert artifacts.diagrams_rendered == 1
+    assert artifacts.diagrams_total == 1
+
+
+def test_generate_lesson_artifacts_excludes_failed_diagrams_from_markdown(tmp_path):
+    """Test that markdown excludes diagrams that failed to render."""
+    parsed = ParsedLesson(
+        title="Test",
+        objectives=["Learn"],
+        audio_script="Content.",
+        diagrams=[
+            DiagramSpec(
+                title="Flow Chart",
+                puml_code="@startuml\nA -> B\n@enduml",
+                caption="Shows the flow.",
+            ),
+        ],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    # Mock failed diagram rendering
+    with patch("chiron.content.pipeline.render_diagram", return_value=None):
+        artifacts = generate_lesson_artifacts(parsed, tmp_path)
+
+    md_content = artifacts.markdown_path.read_text()
+    # Diagram should NOT be in markdown when rendering failed
+    assert "![Flow Chart]" not in md_content
+    assert "Visual Aids" not in md_content
+    assert artifacts.diagrams_rendered == 0
+    assert artifacts.diagrams_total == 1
 
 
 def test_generate_lesson_artifacts_creates_pdf_when_pandoc_available(tmp_path):
-    """Test that PDF is created when pandoc is available."""
+    """Test that PDF is created when pandoc and weasyprint are available."""
     parsed = ParsedLesson(
         title="Test",
         objectives=["Learn"],
@@ -201,8 +272,13 @@ def test_generate_lesson_artifacts_creates_pdf_when_pandoc_available(tmp_path):
         srs_items=[],
     )
 
-    # Mock pandoc being available and successful
-    with patch("shutil.which", return_value="/usr/bin/pandoc"):
+    # Mock pandoc and weasyprint being available and successful
+    def which_mock(cmd):
+        if cmd in ("pandoc", "weasyprint"):
+            return f"/usr/bin/{cmd}"
+        return None
+
+    with patch("shutil.which", side_effect=which_mock):
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.returncode = 0
             artifacts = generate_lesson_artifacts(parsed, tmp_path)
@@ -224,8 +300,109 @@ def test_generate_lesson_artifacts_pdf_none_when_pandoc_unavailable(tmp_path):
 
     with patch(
         "chiron.content.pipeline.check_available_tools",
-        return_value={"pandoc": False, "plantuml": False, "coqui": False, "piper": False},
+        return_value={
+            "pandoc": False,
+            "weasyprint": False,
+            "plantuml": False,
+            "coqui": False,
+            "piper": False,
+        },
     ):
         artifacts = generate_lesson_artifacts(parsed, tmp_path)
 
     assert artifacts.pdf_path is None
+
+
+def test_generate_lesson_artifacts_pdf_none_when_weasyprint_unavailable(tmp_path):
+    """Test that PDF is None when pandoc available but weasyprint not available."""
+    parsed = ParsedLesson(
+        title="Test",
+        objectives=["Learn"],
+        audio_script="Content.",
+        diagrams=[],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    with patch(
+        "chiron.content.pipeline.check_available_tools",
+        return_value={
+            "pandoc": True,
+            "weasyprint": False,
+            "plantuml": False,
+            "coqui": False,
+            "piper": False,
+        },
+    ):
+        artifacts = generate_lesson_artifacts(parsed, tmp_path)
+
+    assert artifacts.pdf_path is None
+
+
+def test_generate_lesson_artifacts_creates_audio_script_when_no_tts(tmp_path):
+    """Test that audio script is exported when no TTS engine is available."""
+    parsed = ParsedLesson(
+        title="Test",
+        objectives=["Learn"],
+        audio_script="Welcome to the lesson.",
+        diagrams=[],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    with patch(
+        "chiron.content.pipeline.check_available_tools",
+        return_value={
+            "pandoc": False,
+            "weasyprint": False,
+            "plantuml": False,
+            "coqui": False,
+            "piper": False,
+        },
+    ):
+        artifacts = generate_lesson_artifacts(parsed, tmp_path)
+
+    # Should export script.txt for external TTS
+    assert artifacts.audio_path is not None
+    assert artifacts.audio_path.suffix == ".txt"
+    assert artifacts.audio_path.exists()
+    assert "Welcome to the lesson" in artifacts.audio_path.read_text()
+
+
+def test_generate_lesson_artifacts_uses_coqui_when_available(tmp_path):
+    """Test that Coqui TTS is used when available."""
+    parsed = ParsedLesson(
+        title="Test",
+        objectives=["Learn"],
+        audio_script="Hello world.",
+        diagrams=[],
+        exercise_seeds=[],
+        srs_items=[],
+    )
+
+    mock_audio_path = tmp_path / "audio.wav"
+    mock_audio_path.write_bytes(b"fake wav")
+
+    with patch(
+        "chiron.content.pipeline.check_available_tools",
+        return_value={
+            "pandoc": False,
+            "weasyprint": False,
+            "plantuml": False,
+            "coqui": True,
+            "piper": False,
+        },
+    ):
+        with patch(
+            "chiron.content.pipeline.generate_audio",
+            return_value=mock_audio_path,
+        ) as mock_generate:
+            artifacts = generate_lesson_artifacts(parsed, tmp_path)
+
+            # Should have called generate_audio with coqui engine
+            call_args = mock_generate.call_args
+            assert call_args is not None
+            config = call_args[0][2]  # Third positional arg is config
+            assert config.engine == "coqui"
+
+    assert artifacts.audio_path == mock_audio_path
