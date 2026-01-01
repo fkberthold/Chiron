@@ -148,3 +148,28 @@ def test_load_voice_config_not_found(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert config.reference_audio is None
     assert config.chunk_length == 396
     assert voice_dir is None
+
+
+def test_load_voice_config_with_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Should load voice config from YAML file."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    # Create voice config directory and file
+    voice_dir = tmp_path / ".chiron" / "voices" / "default"
+    voice_dir.mkdir(parents=True)
+
+    config_file = voice_dir / "voice.yaml"
+    config_file.write_text("""
+reference_audio: reference.wav
+reference_text: "Hello, this is a test."
+chunk_length: 200
+top_p: 0.9
+""")
+
+    config, returned_dir = load_voice_config("default")
+
+    assert config.reference_audio == "reference.wav"
+    assert config.reference_text == "Hello, this is a test."
+    assert config.chunk_length == 200
+    assert config.top_p == 0.9
+    assert returned_dir == voice_dir
