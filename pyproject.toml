@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "AI-powered adaptive learning platform"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.40.0",
     "click>=8.1.0",
@@ -17,6 +17,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "chromadb>=0.4.0",
     "fastmcp>=0.1.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -35,8 +36,8 @@ piper = [
     "piper-tts>=1.2.0",
 ]
 fish = [
-    "fish-speech>=1.4.0",
-    "pyyaml>=6.0",
+    "requests>=2.31.0",
+    "ormsgpack>=1.4.0",
 ]
 
 [project.scripts]
@@ -52,14 +53,12 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 
-[tool.uv.sources]
-fish-speech = { git = "https://github.com/fishaudio/fish-speech", tag = "v1.5.0" }

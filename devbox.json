@@ -1,9 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.2/.schema/devbox.schema.json",
   "packages": [
-    "python@3.11",
+    "python@3.12",
     "plantuml",
-    "pandoc"
+    "pandoc",
+    "python312Packages.weasyprint@latest",
+    "python312Packages.requests@latest",
+    "python312Packages.ormsgpack@latest"
   ],
   "shell": {
     "init_hook": [

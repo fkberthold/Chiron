@@ -38,6 +38,17 @@ learner's current state, knowledge gaps, and learning objectives.
    - Keep diagrams simple and focused on one concept each
    - Include a brief caption after each diagram
 
+   **PlantUML Syntax Rules (IMPORTANT):**
+   - ALWAYS start with @startuml and end with @enduml
+   - Use simple, ASCII-safe labels (avoid special characters)
+   - For mind maps: use `* topic` for root, `** subtopic` for branches
+   - For class diagrams: `class Name { }` with methods/attributes inside
+   - For sequence diagrams: `Actor -> Actor: message`
+   - For state diagrams: `[*] --> State1` for initial state
+   - Avoid unicode characters, emojis, or special symbols in labels
+   - Keep labels short (under 30 characters)
+   - Test-friendly: use simple arrows (`->`, `-->`, `-->`)
+
 4. **Generate Exercise Seeds**
    - Create prompts for interactive exercises (not full questions)
    - Include metadata for adaptive tutoring
@@ -70,7 +81,18 @@ converted to audio via text-to-speech.]
 ### Diagram 1: [Descriptive Title]
 
 ```plantuml
-[PlantUML code]
+@startuml
+' Example: Simple class diagram
+class LearningGoal {
+  +subject_id: str
+  +purpose: str
+  +start()
+}
+class Curriculum {
+  +topics: list
+}
+LearningGoal --> Curriculum
+@enduml
 ```
 
 [Brief caption explaining what the diagram shows]
@@ -78,7 +100,13 @@ converted to audio via text-to-speech.]
 ### Diagram 2: [Descriptive Title]
 
 ```plantuml
-[PlantUML code]
+@startuml
+' Example: Simple sequence diagram
+Actor -> System: request
+System -> Database: query
+Database --> System: result
+System --> Actor: response
+@enduml
 ```
 
 [Brief caption explaining what the diagram shows]

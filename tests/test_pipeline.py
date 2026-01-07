@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+from chiron.content.diagrams import RenderResult
 from chiron.content.parser import DiagramSpec, ParsedLesson
 from chiron.content.pipeline import (
     DiagramResult,
@@ -81,6 +82,24 @@ def test_check_available_tools_detects_fish() -> None:
         tools = check_available_tools()
 
     assert "fish" in tools
+
+
+def test_check_available_tools_detects_fish_via_directory(tmp_path: Path) -> None:
+    """Should detect Fish Speech when directory exists, even without module.
+
+    The fish_speech pip module doesn't include tools/api_server.py,
+    so detection should use _find_fish_speech_dir() instead of import.
+    """
+    # Create a fake fish-speech directory with tools/api_server.py
+    fish_dir = tmp_path / "fish-speech"
+    (fish_dir / "tools").mkdir(parents=True)
+    (fish_dir / "tools" / "api_server.py").touch()
+
+    # Patch the function where it's defined (audio.py) since pipeline.py will import it
+    with patch("chiron.content.audio._find_fish_speech_dir", return_value=fish_dir):
+        tools = check_available_tools()
+
+    assert tools["fish"] is True
 
 
 def test_slugify_simple():
@@ -228,9 +247,11 @@ def test_generate_lesson_artifacts_includes_diagrams_in_markdown(tmp_path):
     def mock_render(puml_path, fmt):
         png_path = puml_path.with_suffix(".png")
         png_path.write_bytes(b"fake png")
-        return png_path
+        return RenderResult(success=True, output_path=png_path)
 
-    with patch("chiron.content.pipeline.render_diagram", side_effect=mock_render):
+    with patch(
+        "chiron.content.pipeline.render_diagram_with_retry", side_effect=mock_render
+    ):
         artifacts = generate_lesson_artifacts(parsed, tmp_path)
 
     md_content = artifacts.markdown_path.read_text()
@@ -259,7 +280,12 @@ def test_generate_lesson_artifacts_excludes_failed_diagrams_from_markdown(tmp_pa
     )
 
     # Mock failed diagram rendering
-    with patch("chiron.content.pipeline.render_diagram", return_value=None):
+    failed_result = RenderResult(
+        success=False, output_path=None, error_message="Syntax error"
+    )
+    with patch(
+        "chiron.content.pipeline.render_diagram_with_retry", return_value=failed_result
+    ):
         artifacts = generate_lesson_artifacts(parsed, tmp_path)
 
     md_content = artifacts.markdown_path.read_text()

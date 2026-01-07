@@ -383,7 +383,7 @@ class Orchestrator:
                 audio_path=artifacts.audio_path,
                 markdown_path=artifacts.markdown_path,
                 pdf_path=artifacts.pdf_path,
-                diagram_paths=artifacts.diagram_paths,
+                diagrams=artifacts.diagrams,
                 exercises_path=artifacts.exercises_path,
                 srs_items_added=len(parsed.srs_items),
             )

@@ -8,8 +8,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from chiron.content.audio import AudioConfig, generate_audio
-from chiron.content.diagrams import render_diagram, save_diagram
+from chiron.content.audio import AudioConfig, _find_fish_speech_dir, generate_audio
+from chiron.content.diagrams import render_diagram_with_retry, save_diagram
 from chiron.content.parser import ParsedLesson
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,9 @@ def check_available_tools() -> dict[str, bool]:
         Dictionary mapping tool names to availability booleans.
     """
     return {
-        "fish": _try_import("fish_speech"),
+        # Fish Speech: check for installation directory with tools/api_server.py
+        # (the pip module doesn't include the server, so import check is insufficient)
+        "fish": _find_fish_speech_dir() is not None,
         "coqui": _try_import("TTS"),
         "piper": _try_import("piper"),
         "plantuml": shutil.which("plantuml") is not None,
@@ -138,13 +140,13 @@ def generate_lesson_artifacts(
             slug = slugify(diagram.title)
             puml_path = save_diagram(diagram.puml_code, diagrams_dir, slug)
 
-            # Try to render to PNG
-            png_path = render_diagram(puml_path, "png")
+            # Try to render to PNG, with Claude-powered retry on failure
+            render_result = render_diagram_with_retry(puml_path, "png")
 
             diagram_results.append(
                 DiagramResult(
                     puml_path=puml_path,
-                    png_path=png_path,
+                    png_path=render_result.output_path,
                     title=diagram.title,
                     caption=diagram.caption,
                 )
